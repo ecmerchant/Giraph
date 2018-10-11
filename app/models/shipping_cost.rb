@@ -1,0 +1,2 @@
+class ShippingCost < ApplicationRecord
+end

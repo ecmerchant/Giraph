@@ -1,0 +1,27 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: MyString
+  order_date: 2018-10-10 00:15:18
+  order_id: MyString
+  sku: MyString
+  sales: 1.5
+  amazon_fee: 1.5
+  ex_rate: 1.5
+  cost_price: 1.5
+  listing_shipping: 1.5
+  profit: 1.5
+  roi: 1.5
+
+two:
+  user: MyString
+  order_date: 2018-10-10 00:15:18
+  order_id: MyString
+  sku: MyString
+  sales: 1.5
+  amazon_fee: 1.5
+  ex_rate: 1.5
+  cost_price: 1.5
+  listing_shipping: 1.5
+  profit: 1.5
+  roi: 1.5

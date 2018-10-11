@@ -1,0 +1,39 @@
+<div class="page-header" id="banner">
+  <div class="row">
+    <div class="col-lg-10 col-md-10">
+      <h2>ツールの設定</h2>
+      <div class="col-lg-7">
+        <%= form_for(@account, {url: products_setup_path, method: 'post'}) do |f| %>
+          <p class="lead">MWSアカウントの設定</p>
+          <div class="form-group">
+            <%= f.label :seller_id, "セラーID" %>
+            <%= f.text_field :seller_id, class: 'form-control' %>
+          </div>
+          <div class="form-group">
+            <%= f.label :aws_access_key_id, "AWSキー" %>
+            <%= f.text_field :aws_access_key_id, class: 'form-control' %>
+          </div>
+          <div class="form-group">
+            <%= f.label :secret_key, "秘密キー" %>
+            <%= f.text_field :secret_key, class: 'form-control' %>
+          </div>
+          <p class="lead">チャットワーク連携設定</p>
+          <div class="form-group">
+            <%= f.label :cw_api_token, "APIトークン" %>
+            <%= f.text_field :cw_api_token, class: 'form-control' %>
+          </div>
+          <div class="form-group">
+            <%= f.label :cw_room_id, "自社相乗りルームID" %>
+            <%= f.text_field :cw_room_id, class: 'form-control' %>
+          </div>
+          <div class="actions">
+            <%= f.submit "設定する", {id: "setup_btn", onClick: 'alert("更新しました")', class: 'btn btn-primary'} %>
+          </div>
+        <% end %>
+        <br>
+        <p class="lead">ASINの削除</p>
+        <%= link_to 'ASIN全削除', '/products/delete', method: :delete, data: { confirm: '本当に削除してよろしいですか？' }, class:'btn btn-danger' %>
+      </div>
+    </div>
+  </div>
+</div>
