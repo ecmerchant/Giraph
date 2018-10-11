@@ -10,6 +10,8 @@ Rails.application.routes.draw do
 
   get 'products/report'
 
+  get 'products/get_jp_price'
+
   mount Resque::Server.new, at: "/resque"
 
   devise_scope :user do

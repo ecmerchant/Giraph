@@ -19,6 +19,12 @@ class ProductsController < ApplicationController
     end
   end
 
+  def get_jp_price
+    user = current_user.email
+    Product.new.check_amazon_jp_price(user,"")
+    redirect_to products_show_path
+  end
+
   def report
     user = current_user.email
     GetReportJob.perform_later(user)
