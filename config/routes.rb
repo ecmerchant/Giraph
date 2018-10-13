@@ -7,6 +7,8 @@ Rails.application.routes.draw do
 
   get 'products/exchange'
 
+  get 'products/calculate'
+
   get 'products/setup'
   post 'products/setup'
 
@@ -14,6 +16,7 @@ Rails.application.routes.draw do
   post 'products/customize'
 
   post 'products/shipping'
+  post 'products/import'
 
   get 'products/report'
   get 'products/get_jp_price'

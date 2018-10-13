@@ -11,7 +11,8 @@ gem 'rails', '~> 5.0.6'
 # Use sqlite3 as the database for Active Record
 gem 'sqlite3', :group => [:development, :test]
 # Use postgreSQL as the database for Active Record
-gem 'pg', :group => :production
+#gem 'pg', :group => :production
+gem 'pg', '0.21.0'
 # Use Puma as the app server
 gem 'puma', '~> 3.0'
 # Use SCSS for stylesheets
@@ -83,3 +84,7 @@ gem 'retryable'
 
 # gem for excel
 gem 'rubyXL'
+
+# gem for pagination
+gem 'kaminari'
+gem 'kaminari-bootstrap'

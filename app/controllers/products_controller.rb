@@ -93,9 +93,47 @@ class ProductsController < ApplicationController
     redirect_to products_show_path
   end
 
+  def import
+    user = current_user.email
+    if request.post? then
+      data = params[:sku_list]
+      if data != nil then
+        ext = File.extname(data.path)
+        if ext == ".xls" || ext == ".xlsx" then
+          workbook = RubyXL::Parser.parse(data.path)
+          worksheet = workbook.first
+          sku_list = Array.new
+          worksheet.each_with_index do |row, i|
+            if row[0].value == nil then break end
+            if i != 0 then
+              asin = row[0].value.to_s
+              sku = row[1].value.to_s
+              sku_list << Product.new(user: user, asin: asin, sku: sku)
+            end
+          end
+          if Rails.env == 'development'
+            logger.debug("======= DEVELOPMENT =========")
+            Product.import sku_list, :on_duplicate_key_update => [:asin]
+            #Product.import sku_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin]}
+          else
+            logger.debug("======= PRODUCTION =========")
+            Product.import sku_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin]}
+          end
+        end
+      end
+    end
+    redirect_to products_show_path
+  end
+
   def report
     user = current_user.email
     GetReportJob.perform_later(user)
+    redirect_to products_show_path
+  end
+
+  def calculate
+    user = current_user.email
+    Product.new.calc_profit(user)
     redirect_to products_show_path
   end
 

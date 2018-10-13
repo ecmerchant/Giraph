@@ -3,6 +3,8 @@ class Product < ApplicationRecord
   require 'peddler'
   require 'activerecord-import'
 
+  #validates :sku, uniqueness: { scope: [:user] }
+
   #日本アマゾン商品情報の取得
   def check_amazon_jp_info(user)
     logger.debug ("==== START JP INFO ======")
@@ -496,8 +498,49 @@ class Product < ApplicationRecord
     calc_ex_rate = account.calc_ex_rate
     delivery_fee_default = account.delivery_fee
     max_roi = account.max_roi
+    targets = products.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
-    targets = products.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee)
+    targets.each_slice(10) do |tag|
+      asin_list = Array.new
+
+      tag.each do |temp|
+        #logger.debug(temp)
+        asin = temp[0]
+        cost = temp[1]
+        us_price = temp[2]
+        us_shipping = temp[3]
+        referral_fee = temp[4]
+        variable_closing_fee = temp[5]
+        shipping = temp[6]
+        referral_fee_rate = temp[7]
+        sku = temp[8]
+
+        min_price = ((cost + shipping + delivery_fee_default) / calc_ex_rate + variable_closing_fee) / (1.0 - referral_fee_rate)
+
+        if us_price != 0 then
+          list_price = us_price + us_shipping
+          profit = (list_price - referral_fee - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
+        else
+          profit = max_roi * (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate)
+          list_price = cost + profit
+          if list_price < min_price then
+            list_price = min_price
+          end
+        end
+        asin_list << Product.new(user:user, asin:asin, us_listing_price: list_price, profit: profit)
+      end
+      logger.debug("================")
+
+      if Rails.env == 'development'
+        logger.debug("======= DEVELOPMENT =========")
+        Product.import asin_list, on_duplicate_key_update: [:us_listing_price, :profit]
+      else
+        logger.debug("======= PRODUCTION =========")
+        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit]}
+      end
+      return
+    end
+
   end
 
 end

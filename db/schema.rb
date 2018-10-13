@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181013122524) do
+ActiveRecord::Schema.define(version: 20181013141111) do
 
   create_table "accounts", force: :cascade do |t|
     t.string   "user"
@@ -85,6 +85,7 @@ ActiveRecord::Schema.define(version: 20181013122524) do
     t.string   "user"
     t.float    "roi"
     t.boolean  "manual_update"
+    t.index ["user", "sku"], name: "index_products_on_user_and_sku", unique: true
   end
 
   create_table "shipping_costs", force: :cascade do |t|
