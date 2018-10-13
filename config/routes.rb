@@ -5,12 +5,21 @@ Rails.application.routes.draw do
   root to: 'products#show'
   get 'products/show'
 
+  get 'products/exchange'
+
   get 'products/setup'
   post 'products/setup'
 
-  get 'products/report'
+  get 'products/customize'
+  post 'products/customize'
 
+  post 'products/shipping'
+
+  get 'products/report'
   get 'products/get_jp_price'
+  get 'products/get_jp_info'
+
+  get 'products/get_us_price'
 
   mount Resque::Server.new, at: "/resque"
 

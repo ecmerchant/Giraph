@@ -1,7 +1,11 @@
 <div class="page-header" id="banner">
   <div class="row">
     <div class="col-lg-12">
-      <h3>検索キーワードを設定</h3>      
+      <h5>商品管理</h5>
+      <%= link_to "レポート取得", { :controller => "products", :action => "report" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
+      <%= link_to "商品情報取得", { :controller => "products", :action => "get_jp_info" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
+      <%= link_to "日本価格取得", { :controller => "products", :action => "get_jp_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
+      <%= link_to "アメリカ価格取得", { :controller => "products", :action => "get_us_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
     </div>
   </div>
 </div>

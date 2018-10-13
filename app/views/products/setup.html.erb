@@ -1,10 +1,10 @@
 <div class="page-header" id="banner">
   <div class="row">
     <div class="col-lg-10 col-md-10">
-      <h2>ツールの設定</h2>
+      <h2>アカウントの設定</h2>
       <div class="col-lg-7">
         <%= form_for(@account, {url: products_setup_path, method: 'post'}) do |f| %>
-          <p class="lead">MWSアカウントの設定</p>
+          <p class="lead">日本MWSアカウントの設定</p>
           <div class="form-group">
             <%= f.label :seller_id, "セラーID" %>
             <%= f.text_field :seller_id, class: 'form-control' %>
@@ -17,6 +17,35 @@
             <%= f.label :secret_key, "秘密キー" %>
             <%= f.text_field :secret_key, class: 'form-control' %>
           </div>
+          <br>
+          <p class="lead">アメリカMWSアカウントの設定（1店舗目）</p>
+          <div class="form-group">
+            <%= f.label :us_seller_id1, "アメリカセラーID_1" %>
+            <%= f.text_field :us_seller_id1, class: 'form-control' %>
+          </div>
+          <div class="form-group">
+            <%= f.label :us_aws_access_key_id1, "アメリカAWSキー_1" %>
+            <%= f.text_field :us_aws_access_key_id1, class: 'form-control' %>
+          </div>
+          <div class="form-group">
+            <%= f.label :us_secret_key1, "アメリカ秘密キー_1" %>
+            <%= f.text_field :us_secret_key1, class: 'form-control' %>
+          </div>
+          <br>
+          <p class="lead">アメリカMWSアカウントの設定（2店舗目）</p>
+          <div class="form-group">
+            <%= f.label :us_seller_id2, "アメリカセラーID_2" %>
+            <%= f.text_field :us_seller_id2, class: 'form-control' %>
+          </div>
+          <div class="form-group">
+            <%= f.label :us_aws_access_key_id2, "アメリカAWSキー_2" %>
+            <%= f.text_field :us_aws_access_key_id2, class: 'form-control' %>
+          </div>
+          <div class="form-group">
+            <%= f.label :us_secret_key2, "アメリカ秘密キー_2" %>
+            <%= f.text_field :us_secret_key2, class: 'form-control' %>
+          </div>
+          <br>
           <p class="lead">チャットワーク連携設定</p>
           <div class="form-group">
             <%= f.label :cw_api_token, "APIトークン" %>
