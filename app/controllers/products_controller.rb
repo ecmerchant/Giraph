@@ -4,14 +4,18 @@ class ProductsController < ApplicationController
   require 'rubyXL'
   require 'open-uri'
 
-  before_action :authenticate_user!, only: :get
+  before_action :authenticate_user!
 
   rescue_from CanCan::AccessDenied do |exception|
     redirect_to root_url, :alert => exception.message
   end
 
+  PER = 10
   def show
     @login_user = User.find_by(email: current_user.email)
+    temp = Product.where(user: current_user.email)
+    @counter = temp.count
+    @products = temp.page(params[:page]).per(PER)
   end
 
   def setup

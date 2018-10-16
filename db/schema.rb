@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181013141111) do
+ActiveRecord::Schema.define(version: 20181016001810) do
+
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
 
   create_table "accounts", force: :cascade do |t|
     t.string   "user"
@@ -85,7 +88,10 @@ ActiveRecord::Schema.define(version: 20181013141111) do
     t.string   "user"
     t.float    "roi"
     t.boolean  "manual_update"
-    t.index ["user", "sku"], name: "index_products_on_user_and_sku", unique: true
+    t.boolean  "on_sale"
+    t.string   "jp_title"
+    t.index ["sku", "user"], name: "for_upsert", unique: true, using: :btree
+    t.index ["user", "sku"], name: "index_products_on_user_and_sku", unique: true, using: :btree
   end
 
   create_table "shipping_costs", force: :cascade do |t|
@@ -106,8 +112,8 @@ ActiveRecord::Schema.define(version: 20181013141111) do
     t.datetime "created_at",                          null: false
     t.datetime "updated_at",                          null: false
     t.boolean  "admin_flg"
-    t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["email"], name: "index_users_on_email", unique: true, using: :btree
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
   end
 
 end

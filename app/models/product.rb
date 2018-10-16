@@ -57,6 +57,7 @@ class Product < ApplicationRecord
           logger.debug("===== ASIN =======\n" + asin.to_s)
           buf = product.dig('Products', 'Product', 'AttributeSets', 'ItemAttributes')
           if buf != nil then
+            title = buf.dig("Title")
             size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
             size_Length = buf.dig("PackageDimensions", "Length", "__content__").to_f * 2.54
             size_Width = buf.dig("PackageDimensions", "Width", "__content__").to_f * 2.54
@@ -66,13 +67,14 @@ class Product < ApplicationRecord
             size_Length = size_Length.round(2)
             size_Width = size_Width.round(2)
             size_Weight = size_Weight.round(2)
-
           else
             logger.debug("=== CASE NO DATA ===")
+            title = "データなし"
             size_Height = 0
             size_Length = 0
             size_Width = 0
             size_Weight = 0
+            shipping_cost = 0
           end
         else
           logger.debug("array")
@@ -100,7 +102,6 @@ class Product < ApplicationRecord
 
         temp = tproducts.where(asin: asin)
 
-
         total_size = size_Height + size_Length + size_Width
         max_size = [size_Height, size_Length, size_Width].max
 
@@ -121,6 +122,7 @@ class Product < ApplicationRecord
 
         if temp != nil then
           temp.update(
+            jp_title: title,
             size_length: size_Length,
             size_width: size_Width,
             size_height: size_Height,
@@ -259,8 +261,8 @@ class Product < ApplicationRecord
     tproducts = Product.where(user:user)
     asins = tproducts.group(:asin).pluck(:asin)
 
-    #mp = "ATVPDKIKX0DER" #アマゾンアメリカ
-    mp = "A1VC38T7YXB528"
+    mp = "ATVPDKIKX0DER" #アマゾンアメリカ
+    #mp = "A1VC38T7YXB528"
     temp = Account.find_by(user: user)
     sid = temp.us_seller_id1
     skey = temp.us_secret_key1
@@ -357,7 +359,7 @@ class Product < ApplicationRecord
         end
 
         prices = {
-          ListingPrice: { Amount: lowestprice.to_f, CurrencyCode: "JPY", }
+          ListingPrice: { Amount: lowestprice.to_f, CurrencyCode: "USD", }
         }
         request = {
           MarketplaceId: mp,
@@ -417,9 +419,14 @@ class Product < ApplicationRecord
           logger.debug(referral_fee.to_f)
           logger.debug((referral_fee.to_f / price.to_f).round(2))
           logger.debug(variable_closing_fee.to_f)
+          if referral_fee.to_f != 0 then
+            rate = (referral_fee.to_f / price.to_f).round(2)
+          else
+            rate = 0.0
+          end
           temp.update(
             referral_fee: referral_fee.to_f,
-            referral_fee_rate: (referral_fee.to_f / price.to_f).round(2),
+            referral_fee_rate: rate,
             variable_closing_fee: variable_closing_fee.to_f
           )
         end
@@ -492,6 +499,7 @@ class Product < ApplicationRecord
   end
 
 
+  #販売価格の計算
   def calc_profit(user)
     products = Product.where(user: user)
     account = Account.find_by(user: user)
@@ -504,41 +512,53 @@ class Product < ApplicationRecord
       asin_list = Array.new
 
       tag.each do |temp|
-        #logger.debug(temp)
+        logger.debug(temp)
         asin = temp[0]
-        cost = temp[1]
-        us_price = temp[2]
-        us_shipping = temp[3]
-        referral_fee = temp[4]
-        variable_closing_fee = temp[5]
-        shipping = temp[6]
-        referral_fee_rate = temp[7]
+        cost = temp[1].to_f
+        us_price = temp[2].to_f
+        us_shipping = temp[3].to_f
+        referral_fee = temp[4].to_f
+        variable_closing_fee = temp[5].to_f
+        shipping = temp[6].to_f
+        referral_fee_rate = temp[7].to_f
         sku = temp[8]
 
-        min_price = ((cost + shipping + delivery_fee_default) / calc_ex_rate + variable_closing_fee) / (1.0 - referral_fee_rate)
+        min_price = (((cost + shipping + delivery_fee_default) / calc_ex_rate + variable_closing_fee) / (1.0 - referral_fee_rate)).round(2)
 
         if us_price != 0 then
           list_price = us_price + us_shipping
           profit = (list_price - referral_fee - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
+          profit = profit.round(0)
         else
-          profit = max_roi * (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate)
-          list_price = cost + profit
-          if list_price < min_price then
-            list_price = min_price
-          end
+          profit = max_roi / 100.0 * (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate).round(0)
+          profit = profit.round(0)
+          list_price = ((cost + profit) / calc_ex_rate).round(2)
         end
-        asin_list << Product.new(user:user, asin:asin, us_listing_price: list_price, profit: profit)
+        if list_price < min_price then
+          list_price = min_price
+          profit = list_price * calc_ex_rate - cost
+          profit = profit.round(0)
+        end
+        roi = profit / (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate).round(1)
+        roi = roi * 100.0
+        if cost != 0 then
+          list_price = list_price.round(2)
+        else
+          list_price = 0.0
+          profit = 0.0
+        end
+        asin_list << Product.new(user:user, sku:sku, asin:asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price)
       end
       logger.debug("================")
 
       if Rails.env == 'development'
         logger.debug("======= DEVELOPMENT =========")
-        Product.import asin_list, on_duplicate_key_update: [:us_listing_price, :profit]
+        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price]}
       else
         logger.debug("======= PRODUCTION =========")
-        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit]}
+        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price]}
       end
-      return
+
     end
 
   end
