@@ -127,7 +127,8 @@ class Product < ApplicationRecord
             size_width: size_Width,
             size_height: size_Height,
             size_weight: size_Weight,
-            listing_shipping: shipping_cost
+            listing_shipping: shipping_cost,
+            shipping_weight: package_weight
           )
         end
         if tasins.length != 5 then
@@ -503,9 +504,11 @@ class Product < ApplicationRecord
   def calc_profit(user)
     products = Product.where(user: user)
     account = Account.find_by(user: user)
+    ex_rate = account.exchange_rate
     calc_ex_rate = account.calc_ex_rate
     delivery_fee_default = account.delivery_fee
     max_roi = account.max_roi
+    payoneer_fee = account.payoneer_fee
     targets = products.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
     targets.each_slice(10) do |tag|
@@ -541,19 +544,20 @@ class Product < ApplicationRecord
         end
         roi = profit / (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate).round(1)
         roi = roi * 100.0
+        roi = roi.round(1)
         if cost != 0 then
           list_price = list_price.round(2)
         else
           list_price = 0.0
           profit = 0.0
         end
-        asin_list << Product.new(user:user, sku:sku, asin:asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price)
+        asin_list << Product.new(user:user, sku:sku, asin:asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price, max_roi: max_roi, calc_ex_rate: calc_ex_rate, roi: roi, delivery_fee: delivery_fee_default, payoneer_fee: payoneer_fee, exchange_rate: ex_rate)
       end
       logger.debug("================")
 
       if Rails.env == 'development'
         logger.debug("======= DEVELOPMENT =========")
-        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price]}
+        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate]}
       else
         logger.debug("======= PRODUCTION =========")
         Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price]}

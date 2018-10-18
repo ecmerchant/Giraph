@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181016001810) do
+ActiveRecord::Schema.define(version: 20181018144858) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -90,6 +90,7 @@ ActiveRecord::Schema.define(version: 20181016001810) do
     t.boolean  "manual_update"
     t.boolean  "on_sale"
     t.string   "jp_title"
+    t.boolean  "listing"
     t.index ["sku", "user"], name: "for_upsert", unique: true, using: :btree
     t.index ["user", "sku"], name: "index_products_on_user_and_sku", unique: true, using: :btree
   end

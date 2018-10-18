@@ -10,7 +10,7 @@ class ProductsController < ApplicationController
     redirect_to root_url, :alert => exception.message
   end
 
-  PER = 10
+  PER = 40
   def show
     @login_user = User.find_by(email: current_user.email)
     temp = Product.where(user: current_user.email)

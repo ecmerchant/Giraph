@@ -10,28 +10,68 @@
       <br><br>
       <h5>商品データ <small>全<%= @counter %>件</small></h5>
       <%= paginate @products %>
-      <table class="table table-striped table-hover table-bordered table-headerfixed ellipsis tablesorter" id="result_table">
+      <table class="table table-striped table-hover table-bordered table-headerfixed ellipsis tablesorter" id="result_table" style="width:3500px;">
         <thead class="thead-inverse" style="font-size: 9pt;">
           <tr>
-            <th width="20%">ASIN</th>
-            <th width="20%">SKU</th>
-            <th width="20%">出品価格($)</th>
-            <th width="10%">仕入価格(円)</th>
-            <th width="10%">利益(円)</th>
-            <th width="10%">米最低価格($)</th>
-            <th width="10%">ボーダ価格($)</th>
+            <th width="4%">ASIN</th>
+            <th width="4%">SKU</th>
+            <th width="4%">日本価格[円]</th>
+            <th width="3%">日本ポイント</th>
+            <th width="4%">仕入値[円]</th>
+            <th width="3%">奥行[cm]</th>
+            <th width="3%">幅[cm]</th>
+            <th width="3%">高さ[cm]</th>
+            <th width="3%">重量[kg]</th>
+            <th width="3%">梱包重量[kg]</th>
+            <th width="4%">アメリカ最安値[$]</th>
+            <th width="5%">アメリカ最安値の送料[$]</th>
+            <th width="4%">最大ROI[%]</th>
+            <th width="4%">アメリカ販売価格[$]</th>
+            <th width="5%">AmazonReferralFee[$]</th>
+            <th width="4%">販売手数料[%]</th>
+            <th width="4%">VariableClosingFee[$]</th>
+            <th width="4%">送料[円]</th>
+            <th width="4%">発送代行手数料[円]</th>
+            <th width="4%">為替レート[円/$]</th>
+            <th width="4%">Payoneer手数料[%]</th>
+            <th width="4%">計算為替[円/$]</th>
+            <th width="4%">利益[円]</th>
+            <th width="4%">最低販売価格[$]</th>
+            <th width="4%">ROI[%]</th>
+            <th width="2%">国内在庫</th>
+            <th width="2%">出品中</th>
           </tr>
         </thead>
         <tbody>
           <% for temp in @products %>
           <tr>
-            <td width="20%"><%= temp.asin %></td>
-            <td width="20%"><%= temp.sku %></td>
-            <td width="20%"><%= temp.us_listing_price %></td>
-            <td width="10%"><%= temp.cost_price.to_i %></td>
-            <td width="10%"><%= temp.profit.to_i %></td>
-            <td width="10%"><%= temp.us_price %></td>
-            <td width="10%"><%= temp.minimum_listing_price %></td>
+            <td width="4%"><%= temp.asin %></td>
+            <td width="4%"><%= temp.sku %></td>
+            <td width="4%"><%= temp.jp_price %></td>
+            <td width="3%"><%= temp.jp_point %></td>
+            <td width="4%"><%= temp.cost_price %></td>
+            <td width="3%"><%= temp.size_length %></td>
+            <td width="3%"><%= temp.size_width %></td>
+            <td width="3%"><%= temp.size_height %></td>
+            <td width="3%"><%= temp.size_weight %></td>
+            <td width="3%"><%= temp.shipping_weight %></td>
+            <td width="4%"><%= temp.us_price %></td>
+            <td width="5%"><%= temp.us_shipping %></td>
+            <td width="4%"><%= temp.max_roi %></td>
+            <td width="4%"><%= temp.us_listing_price %></td>
+            <td width="5%"><%= temp.referral_fee %></td>
+            <td width="4%"><%= temp.referral_fee_rate %></td>
+            <td width="4%"><%= temp.variable_closing_fee %></td>
+            <td width="4%"><%= temp.listing_shipping %></td>
+            <td width="4%"><%= temp.delivery_fee %></td>
+            <td width="4%"><%= temp.exchange_rate %></td>
+            <td width="4%"><%= temp.payoneer_fee %></td>
+            <td width="4%"><%= temp.calc_ex_rate %></td>
+            <td width="4%"><%= temp.profit %></td>
+            <td width="4%"><%= temp.minimum_listing_price %></td>
+            <td width="4%"><%= temp.roi %></td>
+            <td width="2%"><%= temp.on_sale %></td>
+            <td width="2%"><%= temp.listing %></td>
           </tr>
           <% end %>
         </tbody>
