@@ -7,6 +7,8 @@ Rails.application.routes.draw do
 
   get 'products/exchange'
 
+  get 'products/download'
+
   get 'products/calculate'
 
   get 'products/setup'
@@ -25,7 +27,7 @@ Rails.application.routes.draw do
   get 'products/get_us_price'
 
   mount Resque::Server.new, at: "/resque"
-  
+
   devise_scope :user do
     get '/users/sign_out' => 'devise/sessions#destroy'
     get '/sign_in' => 'devise/sessions#new'

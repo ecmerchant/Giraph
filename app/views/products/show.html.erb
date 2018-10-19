@@ -29,8 +29,8 @@
             <th width="4%">アメリカ販売価格[$]</th>
             <th width="5%">AmazonReferralFee[$]</th>
             <th width="4%">販売手数料[%]</th>
-            <th width="4%">VariableClosingFee[$]</th>
-            <th width="4%">送料[円]</th>
+            <th width="5%">VariableClosingFee[$]</th>
+            <th width="3%">送料[円]</th>
             <th width="4%">発送代行手数料[円]</th>
             <th width="4%">為替レート[円/$]</th>
             <th width="4%">Payoneer手数料[%]</th>
@@ -47,9 +47,9 @@
           <tr>
             <td width="4%"><%= temp.asin %></td>
             <td width="4%"><%= temp.sku %></td>
-            <td width="4%"><%= temp.jp_price %></td>
-            <td width="3%"><%= temp.jp_point %></td>
-            <td width="4%"><%= temp.cost_price %></td>
+            <td width="4%"><%= temp.jp_price.to_i %></td>
+            <td width="3%"><%= temp.jp_point.to_i %></td>
+            <td width="4%"><%= temp.cost_price.to_i %></td>
             <td width="3%"><%= temp.size_length %></td>
             <td width="3%"><%= temp.size_width %></td>
             <td width="3%"><%= temp.size_height %></td>
@@ -61,13 +61,13 @@
             <td width="4%"><%= temp.us_listing_price %></td>
             <td width="5%"><%= temp.referral_fee %></td>
             <td width="4%"><%= temp.referral_fee_rate %></td>
-            <td width="4%"><%= temp.variable_closing_fee %></td>
-            <td width="4%"><%= temp.listing_shipping %></td>
-            <td width="4%"><%= temp.delivery_fee %></td>
+            <td width="5%"><%= temp.variable_closing_fee %></td>
+            <td width="3%"><%= temp.listing_shipping.to_i %></td>
+            <td width="4%"><%= temp.delivery_fee.to_i %></td>
             <td width="4%"><%= temp.exchange_rate %></td>
             <td width="4%"><%= temp.payoneer_fee %></td>
             <td width="4%"><%= temp.calc_ex_rate %></td>
-            <td width="4%"><%= temp.profit %></td>
+            <td width="4%"><%= temp.profit.to_i %></td>
             <td width="4%"><%= temp.minimum_listing_price %></td>
             <td width="4%"><%= temp.roi %></td>
             <td width="2%"><%= temp.on_sale %></td>
@@ -77,6 +77,8 @@
         </tbody>
       </table>
       <%= paginate @products %>
+      <br>
+      <%= link_to "ダウンロード", { :controller => "products", :action => "download", :format => "csv" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
     </div>
   </div>
 </div>

@@ -167,6 +167,24 @@ class ProductsController < ApplicationController
     redirect_to products_show_path
   end
 
+  def download
+    @products = Product.where(user: current_user.email)
+    if @products != nil then
+      logger.debug("ok")
+      respond_to do |format|
+        format.html do
+        end
+        format.csv do
+          logger.debug("csv")
+          tt = Time.now
+          strTime = tt.strftime("%Y%m%d%H%M")
+          fname = "商品データ" + strTime + ".csv"
+          send_data render_to_string, filename: fname, type: :csv
+        end
+      end
+    end
+  end
+
   private
   def user_params
      params.require(:account).permit(:user, :shipping_weight, :max_roi, :listing_shipping, :delivery_fee, :payoneer_fee, :seller_id, :aws_access_key_id, :secret_key, :us_seller_id1, :us_aws_access_key_id1, :us_secret_key1, :us_seller_id2, :us_aws_access_key_id2, :us_secret_key2, :cw_api_token, :cw_room_id)
