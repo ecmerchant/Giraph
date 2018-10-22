@@ -4,7 +4,7 @@ Rails.application.routes.draw do
 
   root to: 'products#show'
   get 'products/show'
-
+  get 'products/delete'
   get 'products/exchange'
 
   get 'products/download'

@@ -47,6 +47,7 @@ class Product < ApplicationRecord
     )
 
     asins.each_slice(5) do |tasins|
+      time_counter = Time.now
       logger.debug("============")
       p tasins
       response = client.get_matching_product_for_id(mp, "ASIN", tasins)
@@ -131,6 +132,10 @@ class Product < ApplicationRecord
             shipping_weight: package_weight
           )
         end
+        loop do
+          diff = Time.now - time_counter
+          if diff > 1.5 then break end
+        end
         if tasins.length != 5 then
           p "end"
           break
@@ -171,6 +176,7 @@ class Product < ApplicationRecord
           lowestprice = 0
           lowestship = 0
           lowestpoint = 0
+          jp_stock = true
           logger.debug (buf.class)
           if buf.class == Array then
             logger.debug("=== CASE ARRAY ===")
@@ -203,6 +209,7 @@ class Product < ApplicationRecord
             lowestprice = 0
             lowestship = 0
             lowestpoint = 0
+            jp_stock = false
           end
         else
           logger.debug("====== CASE ARRAY ======")
@@ -249,7 +256,7 @@ class Product < ApplicationRecord
         temp = tproducts.where(asin: asin)
         cost = lowestprice.to_f - lowestpoint.to_f
         if temp != nil then
-          temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost)
+          temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
         end
       end
     end
@@ -439,11 +446,12 @@ class Product < ApplicationRecord
   #出品レポートの取得
   def get_listing_report(user)
     logger.debug("===== Start Listing Report =====")
-    mp = "A1VC38T7YXB528"
+    #mp = "A1VC38T7YXB528"
+    mp = "ATVPDKIKX0DER"  #アメリカアマゾン
     temp = Account.find_by(user: user)
-    sid = temp.seller_id
-    skey = temp.secret_key
-    awskey = temp.aws_access_key_id
+    sid = temp.us_seller_id1
+    skey = temp.us_secret_key1
+    awskey = temp.us_aws_access_key_id1
     products = Product.where(user:user)
     report_type = "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_"
 
@@ -475,7 +483,7 @@ class Product < ApplicationRecord
         genid = "NODATA"
         break
       end
-      sleep(20)
+      sleep(30)
     end
 
     logger.debug("====== generated id =======")
@@ -485,15 +493,25 @@ class Product < ApplicationRecord
       response = client.get_report(genid)
       parser = response.parse
       logger.debug("====== report data is ok =======")
-      parser.each do |row|
-        tsku = row[0].to_s
-        tasin = row[1].to_s
-        logger.debug("SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
-        Product.find_or_create_by(
-          user: user,
-          sku: tsku,
-          asin: tasin
-        )
+      counter = 0
+      parser.each_slice(1000) do |rows|
+        asin_list = Array.new
+        rows.each do |row|
+          tsku = row[0].to_s
+          tasin = row[1].to_s
+          quantity = row[3].to_i
+          counter += 1
+          if quantity == 0 then
+            listing = false
+          else
+            listing = true
+          end
+          logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
+          asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing)
+        end
+        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing]}
+        rows = nil
+        asin_list = nil
       end
     end
     logger.debug("===== End Report =====")

@@ -167,7 +167,20 @@ class ProductsController < ApplicationController
     redirect_to products_show_path
   end
 
+  def delete
+    @products = Product.where(user: current_user.email)
+    if @products != nil then
+      @products.delete_all
+    end
+    redirect_to root_path
+  end
+
   def download
+    cmd = "psql giraph_development -c 'SELECT * FROM products' -A -F, -t > temp/output.csv"
+    system cmd
+    send_file Rails.root.join("files/01.iso")
+    #redirect_to products_show_path
+=begin
     @products = Product.where(user: current_user.email)
     if @products != nil then
       logger.debug("ok")
@@ -183,6 +196,7 @@ class ProductsController < ApplicationController
         end
       end
     end
+=end
   end
 
   private
