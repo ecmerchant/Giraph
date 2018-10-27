@@ -24,6 +24,10 @@
             <%= f.label :payoneer_fee, "Payoneer手数料(%)" %>
             <%= f.text_field :payoneer_fee, class: 'form-control' %>
           </div>
+          <div class="form-group">
+            <%= f.label :handling_time, "出荷までの日数" %>
+            <%= f.text_field :handling_time, class: 'form-control' %>
+          </div>
           <div class="actions">
             <%= f.submit "設定する", {id: "setup_btn", onClick: 'alert("更新しました")', class: 'btn btn-primary'} %>
           </div>

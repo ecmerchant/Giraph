@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181018144858) do
+ActiveRecord::Schema.define(version: 20181027170840) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -38,6 +38,21 @@ ActiveRecord::Schema.define(version: 20181018144858) do
     t.string   "us_secret_key2"
     t.float    "exchange_rate"
     t.float    "calc_ex_rate"
+    t.integer  "handling_time"
+    t.string   "feed_submission_id"
+    t.datetime "feed_submit_at"
+  end
+
+  create_table "feeds", force: :cascade do |t|
+    t.string   "user"
+    t.string   "submission_id"
+    t.string   "sku"
+    t.string   "price"
+    t.string   "quantity"
+    t.string   "handling_time"
+    t.string   "fulfillment_channel"
+    t.datetime "created_at",          null: false
+    t.datetime "updated_at",          null: false
   end
 
   create_table "order_lists", force: :cascade do |t|
@@ -91,6 +106,9 @@ ActiveRecord::Schema.define(version: 20181018144858) do
     t.boolean  "on_sale"
     t.string   "jp_title"
     t.boolean  "listing"
+    t.string   "listing_condition"
+    t.string   "shipping_type"
+    t.boolean  "validity"
     t.index ["sku", "user"], name: "for_upsert", unique: true, using: :btree
     t.index ["user", "sku"], name: "index_products_on_user_and_sku", unique: true, using: :btree
   end

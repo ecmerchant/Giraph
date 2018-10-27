@@ -1,0 +1,19 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: MyString
+  submission_id: MyString
+  sku: MyString
+  price: 1.5
+  quantity: 1
+  handling_time: 1
+  fullfillment_channel: MyString
+
+two:
+  user: MyString
+  submission_id: MyString
+  sku: MyString
+  price: 1.5
+  quantity: 1
+  handling_time: 1
+  fullfillment_channel: MyString

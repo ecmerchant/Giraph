@@ -7,6 +7,8 @@ Rails.application.routes.draw do
   get 'products/delete'
   get 'products/exchange'
 
+  get 'products/revise'
+
   get 'products/download'
 
   get 'products/calculate'

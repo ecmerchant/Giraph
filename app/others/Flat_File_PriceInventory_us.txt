@@ -1,0 +1,1 @@
+sku	price	minimum-seller-allowed-price	maximum-seller-allowed-price	quantity	handling-time	fulfillment-channel

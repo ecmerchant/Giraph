@@ -31,7 +31,7 @@ CSV.generate do |csv|
   ]
 
   csv << header
-  @products.each do |product|
+  @products.each_with_index do |product, k|
     column_values = [
       product.asin,
       product.sku,
@@ -61,6 +61,8 @@ CSV.generate do |csv|
       product.on_sale,
       product.listing
     ]
+    logger.debug(k)
     csv << column_values
+    if k > 500 then break end
   end
 end

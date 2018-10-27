@@ -7,6 +7,7 @@
       <%= link_to "日本価格取得", { :controller => "products", :action => "get_jp_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <%= link_to "アメリカ価格取得", { :controller => "products", :action => "get_us_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <%= link_to "販売価格取得", { :controller => "products", :action => "calculate" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
+      <%= link_to "価格改定", { :controller => "products", :action => "revise" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <br><br>
       <h5>商品データ <small>全<%= @counter %>件</small></h5>
       <%= paginate @products %>
@@ -60,7 +61,7 @@
             <td width="4%"><%= temp.max_roi %></td>
             <td width="4%"><%= temp.us_listing_price %></td>
             <td width="5%"><%= temp.referral_fee %></td>
-            <td width="4%"><%= temp.referral_fee_rate %></td>
+            <td width="4%"><%= temp.referral_fee_rate.to_f*100.0 %></td>
             <td width="5%"><%= temp.variable_closing_fee %></td>
             <td width="3%"><%= temp.listing_shipping.to_i %></td>
             <td width="4%"><%= temp.delivery_fee.to_i %></td>

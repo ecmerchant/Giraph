@@ -18,6 +18,19 @@ class ProductsController < ApplicationController
     @products = temp.page(params[:page]).per(PER)
   end
 
+  def revise
+    @targets = Product.where(user: current_user.email, shipping_type: "default")
+    @targets = @targets.order("updated_at DESC").limit(10)
+    temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
+    logger.debug(temp)
+    tag = Product.new
+    feed_id = tag.submit_feed(current_user.email, temp)
+    logger.debug("====== Feed Subission ID ======")
+    logger.debug(feed_id)
+    logger.debug("===============================")
+    redirect_to products_show_path
+  end
+
   def setup
     @login_user = current_user
     @account = Account.find_or_create_by(user: current_user.email)
@@ -176,12 +189,7 @@ class ProductsController < ApplicationController
   end
 
   def download
-    cmd = "psql giraph_development -c 'SELECT * FROM products' -A -F, -t > temp/output.csv"
-    system cmd
-    send_file Rails.root.join("files/01.iso")
-    #redirect_to products_show_path
-=begin
-    @products = Product.where(user: current_user.email)
+    @products = Product.where(user: current_user.email).order("RANDOM()").limit(500)
     if @products != nil then
       logger.debug("ok")
       respond_to do |format|
@@ -191,17 +199,17 @@ class ProductsController < ApplicationController
           logger.debug("csv")
           tt = Time.now
           strTime = tt.strftime("%Y%m%d%H%M")
-          fname = "商品データ" + strTime + ".csv"
+          fname = "商品データ_" + strTime + ".csv"
           send_data render_to_string, filename: fname, type: :csv
         end
       end
     end
-=end
+
   end
 
   private
   def user_params
-     params.require(:account).permit(:user, :shipping_weight, :max_roi, :listing_shipping, :delivery_fee, :payoneer_fee, :seller_id, :aws_access_key_id, :secret_key, :us_seller_id1, :us_aws_access_key_id1, :us_secret_key1, :us_seller_id2, :us_aws_access_key_id2, :us_secret_key2, :cw_api_token, :cw_room_id)
+     params.require(:account).permit(:user, :shipping_weight, :max_roi, :listing_shipping, :delivery_fee, :payoneer_fee, :seller_id, :aws_access_key_id, :secret_key, :us_seller_id1, :us_aws_access_key_id1, :us_secret_key1, :us_seller_id2, :us_aws_access_key_id2, :us_secret_key2, :cw_api_token, :cw_room_id, :handling_time)
   end
 
 end
