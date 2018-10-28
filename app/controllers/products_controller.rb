@@ -13,22 +13,35 @@ class ProductsController < ApplicationController
   PER = 40
   def show
     @login_user = User.find_by(email: current_user.email)
-    temp = Product.where(user: current_user.email)
+    temp = Product.where(user: current_user.email).order("updated_at DESC")
     @counter = temp.count
     @products = temp.page(params[:page]).per(PER)
   end
 
   def revise
-    @targets = Product.where(user: current_user.email, shipping_type: "default")
-    @targets = @targets.order("updated_at DESC").limit(10)
-    temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-    logger.debug(temp)
-    tag = Product.new
-    feed_id = tag.submit_feed(current_user.email, temp)
-    logger.debug("====== Feed Subission ID ======")
-    logger.debug(feed_id)
-    logger.debug("===============================")
-    redirect_to products_show_path
+    @login_user = current_user
+    if request.post? then
+      @targets = Product.where(user: current_user.email, shipping_type: "default")
+      @targets = @targets.order("updated_at DESC").limit(5)
+      temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
+      logger.debug(temp)
+      tag = Product.new
+      feed_id = tag.submit_feed(current_user.email, temp)
+      logger.debug("====== Feed Subission ID ======")
+      logger.debug(feed_id)
+      logger.debug("===============================")
+      redirect_to products_show_path
+    else
+      @account = Account.find_by(user: current_user.email)
+      @feeds = Feed.where(user: current_user.email)
+    end
+  end
+
+  def result
+    user = current_user.email
+    feed_id = Account.find_by(user: user).feed_submission_id
+    GetFeedResultJob.perform_later(user, feed_id)
+    redirect_to products_revise_path
   end
 
   def setup
@@ -93,14 +106,18 @@ class ProductsController < ApplicationController
   def get_jp_price
     user = current_user.email
     condition = "New"
-    GetJpPriceJob.perform_later(user, condition)
+    GetJpPriceJob.set(queue: :jp_new_item).perform_later(user, condition)
+    condition = "Used"
+    GetJpPriceJob.set(queue: :jp_used_item).perform_later(user, condition)
     redirect_to products_show_path
   end
 
   def get_us_price
     user = current_user.email
     condition = "New"
-    GetUsPriceJob.perform_later(user, condition)
+    GetUsPriceJob.set(queue: :us_new_item).perform_later(user, condition)
+    condition = "Used"
+    GetUsPriceJob.set(queue: :us_used_item).perform_later(user, condition)
     redirect_to products_show_path
   end
 
@@ -204,7 +221,6 @@ class ProductsController < ApplicationController
         end
       end
     end
-
   end
 
   private

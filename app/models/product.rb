@@ -147,7 +147,7 @@ class Product < ApplicationRecord
   #日本アマゾンFBA価格の監視
   def check_amazon_jp_price(user, condition)
     logger.debug ("==== START JP CHECK ======")
-    tproducts = Product.where(user:user)
+    tproducts = Product.where(user:user, listing_condition: condition)
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "A1VC38T7YXB528"
@@ -165,13 +165,13 @@ class Product < ApplicationRecord
 
     asins.each_slice(20) do |tasins|
       p tasins
-      response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: "New"})
+      response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
       parser = response.parse
-
       parser.each do |product|
         if product.class == Hash then
           asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          logger.debug("===== ASIN =======\n" + asin.to_s)
+          logger.debug("===== ASIN =======")
+          logger.debug(asin.to_s)
           buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
           lowestprice = 0
           lowestship = 0
@@ -182,30 +182,49 @@ class Product < ApplicationRecord
             logger.debug("=== CASE ARRAY ===")
             buf.each do |listing|
               logger.debug("=== EACH ITEM ===")
-              logger.debug (listing.class)
-              logger.debug (listing)
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                 if fullfillment == "Amazon" then
-                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                  lowestship = listing.dig('Price', 'Shipping','Amount')
-                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                  jp_stock = true
-                  break
+                  if condition == "New" then
+                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                    lowestship = listing.dig('Price', 'Shipping','Amount')
+                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                    jp_stock = true
+                    break
+                  else
+                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                    if subcondition == "Mint" || subcondition == "Very Good" then
+                      lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                      lowestship = listing.dig('Price', 'Shipping','Amount')
+                      lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                      jp_stock = true
+                      break
+                    end
+                  end
                 end
               end
             end
           elsif buf.class == Hash
             logger.debug("=== CASE HASH ===")
             listing = buf
-            logger.debug (listing)
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
             if fullfillment == "Amazon" then
-              lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-              lowestship = listing.dig('Price', 'Shipping','Amount')
-              lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-              jp_stock = true
+              if condition == "New" then
+                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                lowestship = listing.dig('Price', 'Shipping','Amount')
+                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                jp_stock = true
+              else
+                subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                if subcondition == "Mint" || subcondition == "Very Good" then
+                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                  lowestship = listing.dig('Price', 'Shipping','Amount')
+                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                  jp_stock = true
+                end
+              end
             end
+
           else
             logger.debug("=== CASE NO DATA ===")
             lowestprice = 0
@@ -227,29 +246,47 @@ class Product < ApplicationRecord
             logger.debug("=== CASE ARRAY ===")
             buf.each do |listing|
               logger.debug("=== EACH ITEM ===")
-              logger.debug (listing.class)
-              logger.debug (listing)
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                 if fullfillment == "Amazon" then
-                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                  lowestship = listing.dig('Price', 'Shipping','Amount')
-                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                  jp_stock = true
-                  break
+                  if condition == "New" then
+                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                    lowestship = listing.dig('Price', 'Shipping','Amount')
+                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                    jp_stock = true
+                    break
+                  else
+                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                    if subcondition == "Mint" || subcondition == "Very Good" then
+                      lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                      lowestship = listing.dig('Price', 'Shipping','Amount')
+                      lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                      jp_stock = true
+                      break
+                    end
+                  end
                 end
               end
             end
           elsif buf.class == Hash
             logger.debug("=== CASE HASH ===")
             listing = buf
-            logger.debug (listing)
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
             if fullfillment == "Amazon" then
-              lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-              lowestship = listing.dig('Price', 'Shipping','Amount')
-              lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-              jp_stock = true
+              if condition == "New" then
+                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                lowestship = listing.dig('Price', 'Shipping','Amount')
+                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                jp_stock = true
+              else
+                subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                if subcondition == "Mint" || subcondition == "Very Good" then
+                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                  lowestship = listing.dig('Price', 'Shipping','Amount')
+                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                  jp_stock = true
+                end
+              end
             end
           else
             logger.debug("=== CASE NO DATA ===")
@@ -272,7 +309,7 @@ class Product < ApplicationRecord
   #アメリカアマゾン最低価格の監視
   def check_amazon_us_price(user, condition)
     logger.debug ("==== START US PRICE CHECK ======")
-    tproducts = Product.where(user:user)
+    tproducts = Product.where(user:user, listing_condition: condition)
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "ATVPDKIKX0DER" #アマゾンアメリカ
@@ -294,7 +331,7 @@ class Product < ApplicationRecord
       requests = []
       i = 0
       #最低価格の取得
-      response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: "New"})
+      response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
       parser = response.parse
       parser.each do |product|
         if product.class == Hash then
@@ -310,19 +347,38 @@ class Product < ApplicationRecord
               logger.debug("=== EACH ITEM ===")
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                lowestship = listing.dig('Price', 'Shipping','Amount')
-                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                break
+                if condition == "New" then
+                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                  lowestship = listing.dig('Price', 'Shipping','Amount')
+                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                  break
+                else
+                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                  if subcondition == "Mint" || subcondition == "Very Good" then
+                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                    lowestship = listing.dig('Price', 'Shipping','Amount')
+                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                    break
+                  end
+                end
               end
             end
           elsif buf.class == Hash
             logger.debug("=== CASE HASH ===")
             listing = buf
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-            lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-            lowestship = listing.dig('Price', 'Shipping','Amount')
-            lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+            if condition == "New" then
+              lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+              lowestship = listing.dig('Price', 'Shipping','Amount')
+              lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+            else
+              subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+              if subcondition == "Mint" || subcondition == "Very Good" then
+                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                lowestship = listing.dig('Price', 'Shipping','Amount')
+                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+              end
+            end
           else
             logger.debug("=== CASE NO DATA ===")
             lowestprice = 0
@@ -343,19 +399,38 @@ class Product < ApplicationRecord
               logger.debug("=== EACH ITEM ===")
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                lowestship = listing.dig('Price', 'Shipping','Amount')
-                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                break
+                if condition == "New" then
+                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                  lowestship = listing.dig('Price', 'Shipping','Amount')
+                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                  break
+                else
+                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                  if subcondition == "Mint" || subcondition == "Very Good" then
+                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                    lowestship = listing.dig('Price', 'Shipping','Amount')
+                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                    break
+                  end
+                end
               end
             end
           elsif buf.class == Hash
             logger.debug("=== CASE HASH ===")
             listing = buf
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-            lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-            lowestship = listing.dig('Price', 'Shipping','Amount')
-            lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+            if condition == "New" then
+              lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+              lowestship = listing.dig('Price', 'Shipping','Amount')
+              lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+            else
+              subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+              if subcondition == "Mint" || subcondition == "Very Good" then
+                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                lowestship = listing.dig('Price', 'Shipping','Amount')
+                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+              end
+            end
           else
             logger.debug("=== CASE NO DATA ===")
             lowestprice = 0
@@ -453,6 +528,33 @@ class Product < ApplicationRecord
     end
   end
 
+  #出品情報の取得
+  def get_my_price(user)
+    logger.debug ("==== START LISTING PRICE CHECK ======")
+    tproducts = Product.where(user:user)
+    skus = tproducts.group(:sku).pluck(:sku)
+
+    mp = "ATVPDKIKX0DER" #アマゾンアメリカ
+    temp = Account.find_by(user: user)
+    sid = temp.us_seller_id1
+    skey = temp.us_secret_key1
+    awskey = temp.us_aws_access_key_id1
+
+    client = MWS.products(
+      marketplace: mp,
+      merchant_id: sid,
+      aws_access_key_id: awskey,
+      aws_secret_access_key: skey
+    )
+
+    skus.each_slice(20) do |tskus|
+      response = client.get_my_price_for_sku(mp, tskus)
+      parser = response.parse
+      parser.each do |product|
+
+      end
+    end
+  end
 
   #出品レポートの取得
   def get_listing_report(user)
@@ -654,7 +756,7 @@ class Product < ApplicationRecord
       else
         quantity = 0
         price = ""
-      end      
+      end
       fulfillment_channel = row[4]
       buf = [sku, price, "", "", quantity, htime, fulfillment_channel]
       part = buf.join("\t")
@@ -669,13 +771,12 @@ class Product < ApplicationRecord
        )
     end
 
-    #stream = stream.tosjis
     logger.debug(stream)
-    submissionId = "100000"
+    #submissionId = "100000"
     feed_type = "_POST_FLAT_FILE_PRICEANDQUANTITYONLY_UPDATE_DATA_"
-    #parser = client.submit_feed(stream, feed_type)
-    #doc = Nokogiri::XML(parser.body)
-    #submissionId = doc.xpath(".//mws:FeedSubmissionId", {"mws"=>"http://mws.amazonaws.com/doc/2009-01-01/"}).text
+    parser = client.submit_feed(stream, feed_type)
+    doc = Nokogiri::XML(parser.body)
+    submissionId = doc.xpath(".//mws:FeedSubmissionId", {"mws"=>"http://mws.amazonaws.com/doc/2009-01-01/"}).text
     Feed.where(user: user).update(
       submission_id: submissionId.to_s
     )

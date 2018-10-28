@@ -8,6 +8,9 @@ Rails.application.routes.draw do
   get 'products/exchange'
 
   get 'products/revise'
+  post 'products/revise'
+
+  get 'products/result'
 
   get 'products/download'
 

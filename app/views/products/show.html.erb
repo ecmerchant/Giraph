@@ -7,7 +7,7 @@
       <%= link_to "日本価格取得", { :controller => "products", :action => "get_jp_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <%= link_to "アメリカ価格取得", { :controller => "products", :action => "get_us_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <%= link_to "販売価格取得", { :controller => "products", :action => "calculate" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
-      <%= link_to "価格改定", { :controller => "products", :action => "revise" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
+      <%= link_to "価格改定", { :controller => "products", :action => "revise", :method => "post" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <br><br>
       <h5>商品データ <small>全<%= @counter %>件</small></h5>
       <%= paginate @products %>
@@ -71,7 +71,7 @@
             <td width="4%"><%= temp.profit.to_i %></td>
             <td width="4%"><%= temp.minimum_listing_price %></td>
             <td width="4%"><%= temp.roi %></td>
-            <td width="2%"><%= temp.on_sale %></td>
+            <td width="2%"><%= if temp.on_sale == true then "あり" else "無し" end %></td>
             <td width="2%"><%= temp.listing %></td>
           </tr>
           <% end %>
