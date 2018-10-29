@@ -758,7 +758,7 @@ class Product < ApplicationRecord
         price = ""
       end
       fulfillment_channel = row[4]
-      buf = [sku, price, "", "", quantity, htime, fulfillment_channel]
+      buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
       part = buf.join("\t")
       stream = stream + part + "\n"
       Feed.create(

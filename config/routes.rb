@@ -10,6 +10,9 @@ Rails.application.routes.draw do
   get 'products/revise'
   post 'products/revise'
 
+  get 'products/order'
+  post 'products/order'
+
   get 'products/result'
 
   get 'products/download'

@@ -30,7 +30,6 @@ class ProductsController < ApplicationController
       logger.debug("====== Feed Subission ID ======")
       logger.debug(feed_id)
       logger.debug("===============================")
-      redirect_to products_show_path
     else
       @account = Account.find_by(user: current_user.email)
       @feeds = Feed.where(user: current_user.email)
@@ -169,6 +168,17 @@ class ProductsController < ApplicationController
     user = current_user.email
     Product.new.calc_profit(user)
     redirect_to products_show_path
+  end
+
+  def order
+    @login_user = current_user
+    @account = Account.find_by(user: current_user.email)
+    if request.post? then
+
+
+    else
+      @orders = OrderList.where(user: current_user.email)
+    end
   end
 
   def exchange

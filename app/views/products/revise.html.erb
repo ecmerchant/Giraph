@@ -2,7 +2,7 @@
   <div class="row">
     <div class="col-lg-12">
       <h5>価格改定情報</h5>
-      <%= link_to "価格改定", { :controller => "products", :action => "revise" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
+      <%= link_to("価格改定", {:controller => "products", :action => "revise" }, {:method => :post, :class => "btn btn-primary", :style => "margin-right: 20px;"}) %>
       <%= link_to "改定結果の確認", { :controller => "products", :action => "result" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <br><br>
       <h5>フィードID：<%= @account.feed_submission_id %></h5>
