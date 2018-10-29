@@ -20,9 +20,10 @@ class ProductsController < ApplicationController
 
   def revise
     @login_user = current_user
+    limit = ENV['PER_REVISE_NUM']
     if request.post? then
       @targets = Product.where(user: current_user.email, shipping_type: "default")
-      @targets = @targets.order("updated_at DESC").limit(5)
+      @targets = @targets.order("updated_at DESC").limit(limit)
       temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
       logger.debug(temp)
       tag = Product.new
