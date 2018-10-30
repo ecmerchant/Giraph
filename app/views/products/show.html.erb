@@ -7,6 +7,7 @@
       <%= link_to "日本価格取得", { :controller => "products", :action => "get_jp_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <%= link_to "アメリカ価格取得", { :controller => "products", :action => "get_us_price" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <%= link_to "販売価格取得", { :controller => "products", :action => "calculate" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
+      <%= link_to "為替取得", { :controller => "products", :action => "exchange" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <br><br>
       <h5>商品データ <small>全<%= @counter %>件</small></h5>
       <%= paginate @products %>

@@ -47,10 +47,13 @@ class Product < ApplicationRecord
     )
 
     asins.each_slice(5) do |tasins|
-      time_counter = Time.now
       logger.debug("============")
       p tasins
-      response = client.get_matching_product_for_id(mp, "ASIN", tasins)
+
+      response = nil
+      Retryable.retryable(tries: 5, sleep: 2.0) do
+        response = client.get_matching_product_for_id(mp, "ASIN", tasins)
+      end
       parser = response.parse
       parser.each do |product|
         if product.class == Hash then
@@ -132,10 +135,7 @@ class Product < ApplicationRecord
             shipping_weight: package_weight
           )
         end
-        loop do
-          diff = Time.now - time_counter
-          if diff > 1.5 then break end
-        end
+
         if tasins.length != 5 then
           p "end"
           break
@@ -165,7 +165,12 @@ class Product < ApplicationRecord
 
     asins.each_slice(20) do |tasins|
       p tasins
-      response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
+
+      response = nil
+      Retryable.retryable(tries: 5, sleep: 2.0) do
+        response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
+      end
+
       parser = response.parse
       parser.each do |product|
         if product.class == Hash then
@@ -331,7 +336,11 @@ class Product < ApplicationRecord
       requests = []
       i = 0
       #最低価格の取得
-      response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
+      response = nil
+      Retryable.retryable(tries: 5, sleep: 2.0) do
+        response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
+      end
+
       parser = response.parse
       parser.each do |product|
         if product.class == Hash then
@@ -464,7 +473,12 @@ class Product < ApplicationRecord
 
       #手数料の取得
       logger.debug("====== GET FEE ESTIMATE =======")
-      response2 = client.get_my_fees_estimate(requests)
+
+      response2 = nil
+      Retryable.retryable(tries: 5, sleep: 2.0) do
+        response2 = client.get_my_fees_estimate(requests)
+      end
+
       parser2 = response2.parse
       buf = parser2.dig("FeesEstimateResultList", "FeesEstimateResult")
       j = 0
@@ -607,7 +621,7 @@ class Product < ApplicationRecord
       parser = response.parse
       logger.debug("====== report data is ok =======")
       counter = 0
-      parser.each_slice(1000) do |rows|
+      parser.each_slice(30000) do |rows|
         asin_list = Array.new
         rows.each do |row|
           tsku = row[0].to_s
@@ -656,11 +670,10 @@ class Product < ApplicationRecord
     payoneer_fee = account.payoneer_fee
     targets = products.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
-    targets.each_slice(2000) do |tag|
+    targets.each_slice(30000) do |tag|
       asin_list = Array.new
 
       tag.each do |temp|
-
         asin = temp[0]
         cost = temp[1].to_f
         us_price = temp[2].to_f
@@ -712,8 +725,6 @@ class Product < ApplicationRecord
 
         asin_list << Product.new(user:user, sku:sku, asin:asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price, max_roi: max_roi, calc_ex_rate: calc_ex_rate, roi: roi, delivery_fee: delivery_fee_default, payoneer_fee: payoneer_fee, exchange_rate: ex_rate, shipping_type: shipping_type, listing_condition: listing_condition)
       end
-      logger.debug("================")
-
       if Rails.env == 'development'
         logger.debug("======= DEVELOPMENT =========")
         Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition]}
@@ -786,7 +797,6 @@ class Product < ApplicationRecord
     end
 
     logger.debug(stream)
-    #submissionId = "100000"
     feed_type = "_POST_FLAT_FILE_PRICEANDQUANTITYONLY_UPDATE_DATA_"
     parser = client.submit_feed(stream, feed_type)
     doc = Nokogiri::XML(parser.body)
@@ -800,9 +810,7 @@ class Product < ApplicationRecord
       feed_submission_id: submissionId.to_s,
       feed_submit_at: DateTime.now
     )
-
     return submissionId
-
   end
 
 end
