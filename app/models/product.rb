@@ -9,6 +9,7 @@ class Product < ApplicationRecord
   def check_amazon_jp_info(user)
     logger.debug ("==== START JP INFO ======")
     tproducts = Product.where(user:user)
+    tproducts.order("updated_at ASC")
     asins = tproducts.group(:asin).pluck(:asin)
     buffer = ShippingCost.where(user: user)
 
@@ -140,6 +141,7 @@ class Product < ApplicationRecord
           p "end"
           break
         end
+        sleep(1.0)
       end
     end
   end
@@ -148,6 +150,8 @@ class Product < ApplicationRecord
   def check_amazon_jp_price(user, condition)
     logger.debug ("==== START JP CHECK ======")
     tproducts = Product.where(user:user, listing_condition: condition)
+    tproducts.order("updated_at ASC")
+
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "A1VC38T7YXB528"
@@ -306,6 +310,7 @@ class Product < ApplicationRecord
         if temp != nil then
           temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
         end
+        sleep(2.0)
       end
     end
   end
@@ -315,6 +320,8 @@ class Product < ApplicationRecord
   def check_amazon_us_price(user, condition)
     logger.debug ("==== START US PRICE CHECK ======")
     tproducts = Product.where(user:user, listing_condition: condition)
+    tproducts.order("updated_at ASC")
+    
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "ATVPDKIKX0DER" #アマゾンアメリカ
@@ -539,6 +546,7 @@ class Product < ApplicationRecord
           )
         end
       end
+      sleep(2.0)
     end
   end
 
