@@ -147,8 +147,7 @@ class ProductsController < ApplicationController
           end
           if Rails.env == 'development'
             logger.debug("======= DEVELOPMENT =========")
-            Product.import sku_list, :on_duplicate_key_update => [:asin]
-            #Product.import sku_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin]}
+            Product.import sku_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin]}
           else
             logger.debug("======= PRODUCTION =========")
             Product.import sku_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin]}
@@ -167,7 +166,7 @@ class ProductsController < ApplicationController
 
   def calculate
     user = current_user.email
-    Product.new.calc_profit(user)
+    GetCalcJob.perform_later(user)
     redirect_to products_show_path
   end
 

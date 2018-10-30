@@ -619,10 +619,24 @@ class Product < ApplicationRecord
           else
             listing = true
           end
+
+          #skuで判断
+          if tsku.include?("_F_") then
+            shipping_type = "amazon"
+          else
+            shipping_type = "default"
+          end
+
+          if tsku.include?("used") then
+            listing_condition = "Used"
+          else
+            listing_condition = "New"
+          end
+
           logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
-          asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing)
+          asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing, , shipping_type: shipping_type, listing_condition: listing_condition)
         end
-        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing]}
+        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing, :shipping_type, :listing_condition]}
         rows = nil
         asin_list = nil
       end
