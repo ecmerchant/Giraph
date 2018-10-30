@@ -642,7 +642,7 @@ class Product < ApplicationRecord
     payoneer_fee = account.payoneer_fee
     targets = products.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
-    targets.each_slice(10) do |tag|
+    targets.each_slice(2000) do |tag|
       asin_list = Array.new
 
       tag.each do |temp|
