@@ -58,6 +58,7 @@ gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 #gem for html parse
 gem 'nokogiri'
 gem 'gon'
+gem 'typhoeus'
 
 # gem for administration
 gem 'devise'

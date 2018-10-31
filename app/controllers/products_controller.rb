@@ -123,7 +123,7 @@ class ProductsController < ApplicationController
 
   def get_jp_info
     user = current_user.email
-    GetJpInfoJob.perform_later(user)
+    GetJpInfoJob.set(queue: :jp_item_info).perform_later(user)
     redirect_to products_show_path
   end
 
@@ -160,13 +160,13 @@ class ProductsController < ApplicationController
 
   def report
     user = current_user.email
-    GetReportJob.perform_later(user)
+    GetReportJob.set(queue: :get_report).perform_later(user)
     redirect_to products_show_path
   end
 
   def calculate
     user = current_user.email
-    GetCalcJob.perform_later(user)
+    GetCalcJob.set(queue: :item_calc).perform_later(user)
     redirect_to products_show_path
   end
 

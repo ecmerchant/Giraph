@@ -2,6 +2,7 @@ class Product < ApplicationRecord
 
   require 'peddler'
   require 'activerecord-import'
+  require 'typhoeus'
 
   #validates :sku, uniqueness: { scope: [:user] }
 
@@ -33,12 +34,20 @@ class Product < ApplicationRecord
     shipping_table["EMS送料表"] = table_ems
 
     mp = "A1VC38T7YXB528"
-    temp = Account.find_by(user: user)
-    sid = temp.seller_id
-    skey = temp.secret_key
-    awskey = temp.aws_access_key_id
+    account = Account.find_by(user: user)
+    sid = account.seller_id
+    skey = account.secret_key
+    awskey = account.aws_access_key_id
+    package_weight = account.shipping_weight
 
-    package_weight = temp.shipping_weight
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n商品情報取得開始\n開始時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
 
     client = MWS.products(
       marketplace: mp,
@@ -47,10 +56,9 @@ class Product < ApplicationRecord
       aws_secret_access_key: skey
     )
 
+    counter = 0
+    total_counter = 0
     asins.each_slice(5) do |tasins|
-      logger.debug("============")
-      p tasins
-
       response = nil
       Retryable.retryable(tries: 5, sleep: 2.0) do
         response = client.get_matching_product_for_id(mp, "ASIN", tasins)
@@ -82,7 +90,6 @@ class Product < ApplicationRecord
             shipping_cost = 0
           end
         else
-          logger.debug("array")
           asin = product.dig(1, 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
           logger.debug("===== ASIN =======\n" + asin.to_s)
           buf = product.dig(1, 'Product', 'AttributeSets', 'ItemAttributes')
@@ -136,14 +143,37 @@ class Product < ApplicationRecord
             shipping_weight: package_weight
           )
         end
-
+        counter += 1
+        total_counter += 1
         if tasins.length != 5 then
           p "end"
           break
         end
-        sleep(1.0)
+        temp = nil
       end
+      if counter > 30000 then
+        t = Time.now
+        strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+        msg = "商品情報取得中\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+        account.msend(
+          msg,
+          account.cw_api_token,
+          account.cw_room_id
+        )
+        counter = 0
+      end
+      sleep(1.0)
     end
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n商品情報取得終了\n終了時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
   end
 
   #日本アマゾンFBA価格の監視
@@ -155,10 +185,10 @@ class Product < ApplicationRecord
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "A1VC38T7YXB528"
-    temp = Account.find_by(user: user)
-    sid = temp.seller_id
-    skey = temp.secret_key
-    awskey = temp.aws_access_key_id
+    account = Account.find_by(user: user)
+    sid = account.seller_id
+    skey = account.secret_key
+    awskey = account.aws_access_key_id
 
     client = MWS.products(
       marketplace: mp,
@@ -166,6 +196,18 @@ class Product < ApplicationRecord
       aws_access_key_id: awskey,
       aws_secret_access_key: skey
     )
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n日本アマゾン価格取得開始 (" + condition.to_s + ")\n開始時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
+    counter = 0
+    total_counter = 0
 
     asins.each_slice(20) do |tasins|
       p tasins
@@ -310,9 +352,32 @@ class Product < ApplicationRecord
         if temp != nil then
           temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
         end
-        sleep(2.0)
+        counter += 1
+        total_counter += 1
       end
+      if counter > 30000 then
+        t = Time.now
+        strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+        msg = "日本アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+        account.msend(
+          msg,
+          account.cw_api_token,
+          account.cw_room_id
+        )
+        counter = 0
+      end
+      sleep(2.0)
     end
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n日本アマゾン価格取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
   end
 
 
@@ -321,15 +386,27 @@ class Product < ApplicationRecord
     logger.debug ("==== START US PRICE CHECK ======")
     tproducts = Product.where(user:user, listing_condition: condition)
     tproducts.order("updated_at ASC")
-    
+
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "ATVPDKIKX0DER" #アマゾンアメリカ
     #mp = "A1VC38T7YXB528"
-    temp = Account.find_by(user: user)
-    sid = temp.us_seller_id1
-    skey = temp.us_secret_key1
-    awskey = temp.us_aws_access_key_id1
+    account = Account.find_by(user: user)
+    sid = account.us_seller_id1
+    skey = account.us_secret_key1
+    awskey = account.us_aws_access_key_id1
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n米国アマゾン価格取得開始 (" + condition.to_s + ")\n開始時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
+    counter = 0
+    total_counter = 0
 
     client = MWS.products(
       marketplace: mp,
@@ -358,9 +435,7 @@ class Product < ApplicationRecord
           lowestship = 0
           lowestpoint = 0
           if buf.class == Array then
-            logger.debug("=== CASE ARRAY ===")
             buf.each do |listing|
-              logger.debug("=== EACH ITEM ===")
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                 if condition == "New" then
@@ -380,7 +455,6 @@ class Product < ApplicationRecord
               end
             end
           elsif buf.class == Hash
-            logger.debug("=== CASE HASH ===")
             listing = buf
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
             if condition == "New" then
@@ -402,7 +476,6 @@ class Product < ApplicationRecord
             lowestpoint = 0
           end
         else
-          logger.debug("====== CASE ARRAY ======")
           asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
           logger.debug("===== ASIN =======\n" + asin.to_s)
           buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
@@ -410,9 +483,7 @@ class Product < ApplicationRecord
           lowestship = 0
           lowestpoint = 0
           if buf.class == Array then
-            logger.debug("=== CASE ARRAY ===")
             buf.each do |listing|
-              logger.debug("=== EACH ITEM ===")
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                 if condition == "New" then
@@ -432,7 +503,6 @@ class Product < ApplicationRecord
               end
             end
           elsif buf.class == Hash
-            logger.debug("=== CASE HASH ===")
             listing = buf
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
             if condition == "New" then
@@ -499,7 +569,6 @@ class Product < ApplicationRecord
         fees = result.dig("FeesEstimate")
         price = result.dig("FeesEstimateIdentifier", "PriceToEstimateFees", "ListingPrice", "Amount")
         j += 1
-        logger.debug(asin.to_s + " " + j.to_s)
         if fees != nil then
           lists= fees.dig("FeeDetailList", "FeeDetail")
           lists.each do |fee|
@@ -525,10 +594,6 @@ class Product < ApplicationRecord
         temp = tproducts.where(asin: asin)
 
         if temp != nil then
-          logger.debug("=== UPDATE ===")
-          logger.debug(referral_fee.to_f)
-          logger.debug((referral_fee.to_f / price.to_f).round(2))
-          logger.debug(variable_closing_fee.to_f)
           if referral_fee.to_f != 0 then
             rate = (referral_fee.to_f / price.to_f).round(2)
           else
@@ -545,9 +610,34 @@ class Product < ApplicationRecord
             variable_closing_fee: variable_closing_fee.to_f
           )
         end
+        counter += 1
+        total_counter += 1
+
+        if counter > 30000 then
+          t = Time.now
+          strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+          msg = "米国アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+          account.msend(
+            msg,
+            account.cw_api_token,
+            account.cw_room_id
+          )
+          counter = 0
+        end
+
       end
       sleep(2.0)
     end
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n米国アマゾン価格取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
   end
 
   #出品情報の取得
@@ -678,6 +768,19 @@ class Product < ApplicationRecord
     payoneer_fee = account.payoneer_fee
     targets = products.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n価格計算取得開始\n開始時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
+    counter = 0
+    total_counter = 0
+
+
     targets.each_slice(30000) do |tag|
       asin_list = Array.new
 
@@ -741,28 +844,42 @@ class Product < ApplicationRecord
         Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition]}
       end
     end
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n価格計算取得終了\n終了時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
   end
 
   def submit_feed(user, data)
     fba = ""
-    #mp = "A1VC38T7YXB528"
     mp = "ATVPDKIKX0DER"  #アメリカアマゾン
 
-    temp = Account.find_by(user: user)
-    sid = temp.us_seller_id1
-    skey = temp.us_secret_key1
-    awskey = temp.us_aws_access_key_id1
-    handling_time = temp.handling_time
-    #apitoken = temp.cw_api_token
-    #roomid = temp.cw_room_id
-    #roomid2 = temp.cw_room_id2
-    #ids = temp.cw_ids
+    account = Account.find_by(user: user)
+    sid = account.us_seller_id1
+    skey = account.us_secret_key1
+    awskey = account.us_aws_access_key_id1
+    handling_time = account.handling_time
 
     client = MWS.feeds(
       marketplace: mp,
       merchant_id: sid,
       aws_access_key_id: awskey,
       aws_secret_access_key: skey
+    )
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n価格改定開始\n開始時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
     )
 
     stream = ""
@@ -813,12 +930,20 @@ class Product < ApplicationRecord
       submission_id: submissionId.to_s
     )
 
-    temp = Account.find_by(user: user)
-    temp.update(
+    account.update(
       feed_submission_id: submissionId.to_s,
       feed_submit_at: DateTime.now
     )
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n価格改定終了\n終了時刻：" + strTime + "\nフィードID：" + submissionId.to_s + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+
     return submissionId
   end
-
 end
