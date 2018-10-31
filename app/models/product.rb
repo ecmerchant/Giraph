@@ -14,6 +14,7 @@ class Product < ApplicationRecord
     asins = tproducts.group(:asin).pluck(:asin)
     buffer = ShippingCost.where(user: user)
 
+
     t_a = buffer.where(name: "送料表A").order(weight: "ASC")
     t_ems = buffer.where(name: "EMS送料表").order(weight: "ASC")
     table_a = Array.new
@@ -60,9 +61,12 @@ class Product < ApplicationRecord
     total_counter = 0
     asins.each_slice(5) do |tasins|
       response = nil
-      Retryable.retryable(tries: 5, sleep: 2.0) do
+      Retryable.retryable(tries: 5, sleep: 1.2) do
         response = client.get_matching_product_for_id(mp, "ASIN", tasins)
       end
+
+      time_counter1 = Time.now.strftime('%s%L').to_i
+
       parser = response.parse
       parser.each do |product|
         if product.class == Hash then
@@ -162,7 +166,16 @@ class Product < ApplicationRecord
         )
         counter = 0
       end
-      sleep(1.0)
+
+      time_counter2 = Time.now.strftime('%s%L').to_i
+      diff_time = time_counter2 - time_counter1
+
+      while diff_time < 1000.0 do
+        sleep(0.02)
+        time_counter2 = Time.now.strftime('%s%L').to_i
+        diff_time = time_counter2 - time_counter1
+      end
+
     end
 
     t = Time.now
@@ -209,13 +222,15 @@ class Product < ApplicationRecord
     counter = 0
     total_counter = 0
 
-    asins.each_slice(20) do |tasins|
+    asins.each_slice(10) do |tasins|
       p tasins
 
       response = nil
       Retryable.retryable(tries: 5, sleep: 2.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
       end
+
+      time_counter1 = Time.now.strftime('%s%L').to_i
 
       parser = response.parse
       parser.each do |product|
@@ -355,6 +370,7 @@ class Product < ApplicationRecord
         counter += 1
         total_counter += 1
       end
+
       if counter > 30000 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -366,7 +382,18 @@ class Product < ApplicationRecord
         )
         counter = 0
       end
-      sleep(2.0)
+
+      time_counter2 = Time.now.strftime('%s%L').to_i
+      diff_time = time_counter2 - time_counter1
+
+      while diff_time < 1000.0 do
+        sleep(0.02)
+        time_counter2 = Time.now.strftime('%s%L').to_i
+        diff_time = time_counter2 - time_counter1
+      end
+
+      logger.debug("========" + diff_time.to_s + "==========")
+
     end
 
     t = Time.now
@@ -382,7 +409,7 @@ class Product < ApplicationRecord
 
 
   #アメリカアマゾン最低価格の監視
-  def check_amazon_us_price(user, condition)
+  def check_amazon_us_price(user, condition, fee_check)
     logger.debug ("==== START US PRICE CHECK ======")
     tproducts = Product.where(user:user, listing_condition: condition)
     tproducts.order("updated_at ASC")
@@ -415,15 +442,18 @@ class Product < ApplicationRecord
       aws_secret_access_key: skey
     )
 
-    asins.each_slice(20) do |tasins|
+    asins.each_slice(10) do |tasins|
       p tasins
+
       requests = []
       i = 0
       #最低価格の取得
       response = nil
-      Retryable.retryable(tries: 5, sleep: 2.0) do
+      Retryable.retryable(tries: 5, sleep: 1.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
       end
+
+      time_counter1 = Time.now.strftime('%s%L').to_i
 
       parser = response.parse
       parser.each do |product|
@@ -532,7 +562,8 @@ class Product < ApplicationRecord
             us_point: lowestpoint.to_f
           )
         end
-
+        counter += 1
+        total_counter += 1
         prices = {
           ListingPrice: { Amount: lowestprice.to_f, CurrencyCode: "USD", }
         }
@@ -549,84 +580,99 @@ class Product < ApplicationRecord
       end
 
       #手数料の取得
-      logger.debug("====== GET FEE ESTIMATE =======")
+      if fee_check == true then
+        logger.debug("====== GET FEE ESTIMATE =======")
+        response2 = nil
+        Retryable.retryable(tries: 5, sleep: 0.5) do
+          response2 = client.get_my_fees_estimate(requests)
+        end
+        parser2 = response2.parse
 
-      response2 = nil
-      Retryable.retryable(tries: 5, sleep: 2.0) do
-        response2 = client.get_my_fees_estimate(requests)
-      end
+        buf = parser2.dig("FeesEstimateResultList", "FeesEstimateResult")
+        j = 0
+        referral_fee = 0
+        variable_closing_fee = 0
+        per_item_fee = 0
+        fba_fees = 0
+        buf.each do |result|
+          logger.debug("====== FEE ESTIMATE ASINS =======")
+          tmp = result.dig("FeesEstimateIdentifier")
+          asin = result.dig("FeesEstimateIdentifier", "IdValue")
+          fees = result.dig("FeesEstimate")
+          price = result.dig("FeesEstimateIdentifier", "PriceToEstimateFees", "ListingPrice", "Amount")
 
-      parser2 = response2.parse
-      buf = parser2.dig("FeesEstimateResultList", "FeesEstimateResult")
-      j = 0
-      referral_fee = 0
-      variable_closing_fee = 0
-      per_item_fee = 0
-      fba_fees = 0
-      buf.each do |result|
-        logger.debug("====== FEE ESTIMATE ASINS =======")
-        asin = result.dig("FeesEstimateIdentifier", "IdValue")
-        fees = result.dig("FeesEstimate")
-        price = result.dig("FeesEstimateIdentifier", "PriceToEstimateFees", "ListingPrice", "Amount")
-        j += 1
-        if fees != nil then
-          lists= fees.dig("FeeDetailList", "FeeDetail")
-          lists.each do |fee|
-            feetype = fee.dig("FeeType")
-            logger.debug(feetype)
-            case feetype
-              when "ReferralFee" then
-                referral_fee = fee.dig("FinalFee", "Amount")
-                logger.debug(referral_fee.to_f)
-              when "VariableClosingFee" then
-                variable_closing_fee = fee.dig("FinalFee", "Amount")
-                logger.debug(variable_closing_fee.to_f)
-              when "PerItemFee" then
-                per_item_fee = fee.dig("FinalFee", "Amount")
-                logger.debug(per_item_fee.to_f)
-              when "FBAFees" then
-                fba_fees = fee.dig("FinalFee", "Amount")
-                logger.debug(fba_fees.to_f)
+          j += 1
+          if fees != nil then
+            lists= fees.dig("FeeDetailList", "FeeDetail")
+            checker = 0
+            lists.each do |fee|
+              feetype = fee.dig("FeeType")
+              logger.debug(feetype)
+              case feetype
+                when "ReferralFee" then
+                  referral_fee = fee.dig("FinalFee", "Amount")
+                  logger.debug(referral_fee.to_f)
+                  checker += 1
+                when "VariableClosingFee" then
+                  variable_closing_fee = fee.dig("FinalFee", "Amount")
+                  logger.debug(variable_closing_fee.to_f)
+                  checker += 1
+                when "PerItemFee" then
+                  per_item_fee = fee.dig("FinalFee", "Amount")
+                  logger.debug(per_item_fee.to_f)
+                when "FBAFees" then
+                  fba_fees = fee.dig("FinalFee", "Amount")
+                  logger.debug(fba_fees.to_f)
+              end
+              if checker == 2 then break end
             end
           end
-        end
 
-        temp = tproducts.where(asin: asin)
+          temp = tproducts.where(asin: asin)
 
-        if temp != nil then
-          if referral_fee.to_f != 0 then
-            rate = (referral_fee.to_f / price.to_f).round(2)
-          else
-            rate = 0.15
+          if temp != nil then
+            if referral_fee.to_f != 0 then
+              rate = (referral_fee.to_f / price.to_f).round(2)
+            else
+              rate = 0.15
+            end
+
+            if price.to_f == 0 then
+              rate = 0.15
+            end
+
+            temp.update(
+              referral_fee: referral_fee.to_f,
+              referral_fee_rate: rate,
+              variable_closing_fee: variable_closing_fee.to_f
+            )
           end
-
-          if price.to_f == 0 then
-            rate = 0.15
-          end
-
-          temp.update(
-            referral_fee: referral_fee.to_f,
-            referral_fee_rate: rate,
-            variable_closing_fee: variable_closing_fee.to_f
-          )
         end
-        counter += 1
-        total_counter += 1
-
-        if counter > 30000 then
-          t = Time.now
-          strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-          msg = "米国アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
-          account.msend(
-            msg,
-            account.cw_api_token,
-            account.cw_room_id
-          )
-          counter = 0
-        end
-
       end
-      sleep(2.0)
+
+      if counter > 30000 then
+        t = Time.now
+        strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+        msg = "米国アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+        account.msend(
+          msg,
+          account.cw_api_token,
+          account.cw_room_id
+        )
+        counter = 0
+      end
+
+      time_counter2 = Time.now.strftime('%s%L').to_i
+      diff_time = time_counter2 - time_counter1
+
+      while diff_time < 1000.0 do
+        sleep(0.02)
+        time_counter2 = Time.now.strftime('%s%L').to_i
+        diff_time = time_counter2 - time_counter1
+      end
+
+      logger.debug("=======" + diff_time.to_s + "========")
+
     end
 
     t = Time.now

@@ -114,10 +114,15 @@ class ProductsController < ApplicationController
 
   def get_us_price
     user = current_user.email
+
+    fee_check = ENV['FEE_CHECK']
+    if fee_check == nil then
+      fee_check = false
+    end
     condition = "New"
-    GetUsPriceJob.set(queue: :us_new_item).perform_later(user, condition)
+    GetUsPriceJob.set(queue: :us_new_item).perform_later(user, condition, fee_check)
     condition = "Used"
-    GetUsPriceJob.set(queue: :us_used_item).perform_later(user, condition)
+    GetUsPriceJob.set(queue: :us_used_item).perform_later(user, condition, fee_check)
     redirect_to products_show_path
   end
 

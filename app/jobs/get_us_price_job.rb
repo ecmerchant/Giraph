@@ -7,7 +7,7 @@ class GetUsPriceJob < ApplicationJob
     logger.error exception
   end
 
-  def perform(user, condition)
-    Product.new.check_amazon_us_price(user, condition)
+  def perform(user, condition, fee_check)
+    Product.new.check_amazon_us_price(user, condition, fee_check)
   end
 end
