@@ -580,7 +580,7 @@ class Product < ApplicationRecord
       end
 
       #手数料の取得
-      if fee_check == true then
+      if fee_check == "TRUE" then
         logger.debug("====== GET FEE ESTIMATE =======")
         response2 = nil
         Retryable.retryable(tries: 5, sleep: 0.5) do

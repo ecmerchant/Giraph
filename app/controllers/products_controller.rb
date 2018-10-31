@@ -117,7 +117,7 @@ class ProductsController < ApplicationController
 
     fee_check = ENV['FEE_CHECK']
     if fee_check == nil then
-      fee_check = false
+      fee_check = "FALSE"
     end
     condition = "New"
     GetUsPriceJob.set(queue: :us_new_item).perform_later(user, condition, fee_check)
