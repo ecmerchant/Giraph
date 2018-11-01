@@ -422,7 +422,6 @@ class Product < ApplicationRecord
       diff_time = nil
       
       Retryable.retryable(tries: 5, sleep: 2.0) do
-        response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
         while diff_time < 1000.0 do
@@ -430,6 +429,7 @@ class Product < ApplicationRecord
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
         end
+        response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
       end
 
       time_counter1 = Time.now.strftime('%s%L').to_i
