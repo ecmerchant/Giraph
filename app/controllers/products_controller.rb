@@ -128,7 +128,7 @@ class ProductsController < ApplicationController
 
   def get_jp_info
     user = current_user.email
-    GetJpInfoJob.set(queue: :jp_item_info).perform_later(user)
+    GetJpInfoJob.set(queue: :jp_item_info).perform_later(user, "New")
     redirect_to products_show_path
   end
 
