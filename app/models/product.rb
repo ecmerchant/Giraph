@@ -762,7 +762,7 @@ class Product < ApplicationRecord
           end
         end
         #Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing, :shipping_type, :listing_condition]}, validate: false
-        Product.import asin_list, on_duplicate_key_update: {conflict_target: [:user, :sku, :asin, :listing_condition, :shipping_type], columns: [:listing]}, validate: false
+        Product.import asin_list, on_duplicate_key_update: [:listing], validate: false
 
         rows = nil
         asin_list = nil
