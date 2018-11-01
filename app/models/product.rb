@@ -167,7 +167,7 @@ class Product < ApplicationRecord
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
       end
-      logger.debug("JP_INFO: No." + total_counter.to_s + ", Diff: " + diff_time.to_s)
+      logger.debug("==== JP_INFO: No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
 
     t = Time.now
@@ -186,7 +186,6 @@ class Product < ApplicationRecord
     logger.debug ("==== START JP CHECK ======")
     tproducts = Product.where(user:user, listing_condition: condition)
     tproducts.order("updated_at ASC")
-
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "A1VC38T7YXB528"
@@ -215,6 +214,7 @@ class Product < ApplicationRecord
     total_counter = 0
 
     asins.each_slice(10) do |tasins|
+      update_list = Array.new      
       response = nil
       Retryable.retryable(tries: 5, sleep: 2.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
@@ -337,14 +337,20 @@ class Product < ApplicationRecord
             jp_stock = false
           end
         end
-        temp = tproducts.where(asin: asin)
+        #temp = tproducts.where(asin: asin)
         cost = lowestprice.to_f - lowestpoint.to_f
-        if temp != nil then
-          temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
-        end
+        #if temp != nil then
+        #  temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
+        #end
+        update_list << Product.new(user:user, asin:asin, jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
+        
         counter += 1
         total_counter += 1
       end
+                  
+      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_price, :jp_shipping, :jp_point, :cost_price, :on_sale]}
+      update_list = nil
+                  
       if counter > 29999 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -365,7 +371,7 @@ class Product < ApplicationRecord
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
       end
-      logger.debug("JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s)
+      logger.debug("==== JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -383,11 +389,9 @@ class Product < ApplicationRecord
     logger.debug ("==== START US PRICE CHECK ======")
     tproducts = Product.where(user:user, listing_condition: condition)
     tproducts.order("updated_at ASC")
-
     asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "ATVPDKIKX0DER" #アマゾンアメリカ
-    #mp = "A1VC38T7YXB528"
     account = Account.find_by(user: user)
     sid = account.us_seller_id1
     skey = account.us_secret_key1
@@ -627,7 +631,7 @@ class Product < ApplicationRecord
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
       end
-      logger.debug("US_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s)
+      logger.debug("==== US_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
 
     t = Time.now
