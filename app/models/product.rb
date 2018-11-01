@@ -184,7 +184,7 @@ class Product < ApplicationRecord
   #日本アマゾンFBA価格の監視
   def check_amazon_jp_price(user, condition)
     logger.debug ("==== START JP CHECK ======")
-    tproducts = Product.where(user:user, listing_condition: condition)
+    tproducts = Product.where(user: user, listing_condition: condition, shipping_type: "default")
     tproducts.order("updated_at ASC")
     asins = tproducts.group(:asin).pluck(:asin)
 
@@ -342,7 +342,7 @@ class Product < ApplicationRecord
         #if temp != nil then
         #  temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
         #end
-        update_list << Product.new(user:user, asin:asin, listing_condition: condition, jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
+        update_list << Product.new(user:user, asin:asin, listing_condition: condition, shipping_type: "default", jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
         
         counter += 1
         total_counter += 1
