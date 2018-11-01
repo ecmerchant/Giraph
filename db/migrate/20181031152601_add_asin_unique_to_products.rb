@@ -1,4 +1,4 @@
-class AddUniqueToProducts < ActiveRecord::Migration[5.0]
+class AddAsinUniqueToProducts < ActiveRecord::Migration[5.0]
   def change
     execute <<-SQL
       ALTER TABLE products
