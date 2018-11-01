@@ -760,6 +760,7 @@ class Product < ApplicationRecord
         asin_list = nil
       end
     end
+    logger.debug(counter.to_s)
     logger.debug("===== End Report =====")
   end
 
