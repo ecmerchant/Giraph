@@ -764,7 +764,7 @@ class Product < ApplicationRecord
         
         begin
           Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :listing, :shipping_type, :listing_condition]}, validate: false
-        resque
+        rescue => e
           logger.debug("========== EMG ============")
           Product.import asin_list, on_duplicate_key_ignore: true
         end
