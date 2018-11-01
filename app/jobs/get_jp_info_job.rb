@@ -7,9 +7,9 @@ class GetJpInfoJob < ApplicationJob
     logger.error exception
   end
 
-  def perform(user)
+  def perform(user, condition)
     logger.debug("==== GET JP INFO JOB ====")
-    Product.new.check_amazon_jp_info(user)
+    Product.new.check_amazon_jp_info(user, condition)
   end
 
 end
