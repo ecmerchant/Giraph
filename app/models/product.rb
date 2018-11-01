@@ -755,7 +755,7 @@ class Product < ApplicationRecord
             asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition)
           end
         end
-        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing, :shipping_type, :listing_condition]}
+        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing, :shipping_type, :listing_condition]}, validate: false
         rows = nil
         asin_list = nil
         logger.debug("=========================")
