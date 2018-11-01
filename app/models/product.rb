@@ -724,7 +724,7 @@ class Product < ApplicationRecord
       parser = response.parse
       logger.debug("====== report data is ok =======")
       counter = 0
-      parser.each_slice(5000) do |rows|
+      parser.each_slice(10000) do |rows|
         asin_list = Array.new
         rows.each do |row|
           tsku = row[0].to_s
@@ -758,6 +758,8 @@ class Product < ApplicationRecord
         Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing, :shipping_type, :listing_condition]}
         rows = nil
         asin_list = nil
+        logger.debug("=========================")
+        logger.debug(counter.to_s)
       end
     end
     logger.debug(counter.to_s)
