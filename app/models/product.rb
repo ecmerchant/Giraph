@@ -348,7 +348,7 @@ class Product < ApplicationRecord
         total_counter += 1
       end
                   
-      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_price, :jp_shipping, :jp_point, :cost_price, :on_sale]}
+      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_price, :jp_shipping, :jp_point, :cost_price, :on_sale, :shipping_type]}
       update_list = nil
                   
       if counter > 29999 then
