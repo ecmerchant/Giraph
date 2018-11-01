@@ -7,13 +7,13 @@ class Product < ApplicationRecord
   #validates :sku, uniqueness: { scope: [:user] }
 
   #日本アマゾン商品情報の取得
-  def check_amazon_jp_info(user)
+  def check_amazon_jp_info(user, condition)
     logger.debug ("==== START JP INFO ======")
-    tproducts = Product.where(user:user)
+    
+    tproducts = Product.where(user:user, listing_condition: condition)
     tproducts.order("updated_at ASC")
     asins = tproducts.group(:asin).pluck(:asin)
     buffer = ShippingCost.where(user: user)
-
 
     t_a = buffer.where(name: "送料表A").order(weight: "ASC")
     t_ems = buffer.where(name: "EMS送料表").order(weight: "ASC")
@@ -43,7 +43,7 @@ class Product < ApplicationRecord
 
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-    msg = "=========================\n商品情報取得開始\n開始時刻：" + strTime + "\n========================="
+    msg = "=========================\n商品情報取得開始 (" + condition.to_s + ")\n開始時刻：" + strTime + "\n========================="
     account.msend(
       msg,
       account.cw_api_token,
@@ -113,8 +113,6 @@ class Product < ApplicationRecord
           end
         end
 
-        #temp = tproducts.where(asin: asin)
-
         total_size = size_Height + size_Length + size_Width
         max_size = [size_Height, size_Length, size_Width].max
 
@@ -132,25 +130,10 @@ class Product < ApplicationRecord
             break
           end
         end
-          
-        update_list << Product.new(user: user, asin: asin, size_length: size_Length, size_width: size_Width, size_height: size_Height, size_weight: size_Weight, listing_shipping: shipping_cost, shipping_weight: package_weight)
         
-=begin
-        if temp != nil then
-          temp.update(
-            jp_title: title,
-            size_length: size_Length,
-            size_width: size_Width,
-            size_height: size_Height,
-            size_weight: size_Weight,
-            listing_shipping: shipping_cost,
-            shipping_weight: package_weight
-          )
-        end
-=end
+        update_list << Product.new(user: user, asin: asin, listing_condition: condition, jp_title: title, size_length: size_Length, size_width: size_Width, size_height: size_Height, size_weight: size_Weight, listing_shipping: shipping_cost, shipping_weight: package_weight)
         counter += 1
         total_counter += 1
-        temp = nil
       end
             
       Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_title, :size_length, :size_width, :size_height, :size_weight, :listing_shipping, :shipping_weight]}
@@ -159,7 +142,7 @@ class Product < ApplicationRecord
       if counter > 29999 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-        msg = "商品情報取得中\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+        msg = "商品情報取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
         account.msend(
           msg,
           account.cw_api_token,
@@ -181,13 +164,12 @@ class Product < ApplicationRecord
 
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-    msg = "=========================\n商品情報取得終了\n終了時刻：" + strTime + "\n========================="
+    msg = "=========================\n商品情報取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
     account.msend(
       msg,
       account.cw_api_token,
       account.cw_room_id
     )
-
   end
 
   #日本アマゾンFBA価格の監視
@@ -346,11 +328,8 @@ class Product < ApplicationRecord
             jp_stock = false
           end
         end
-        #temp = tproducts.where(asin: asin)
+
         cost = lowestprice.to_f - lowestpoint.to_f
-        #if temp != nil then
-        #  temp.update(jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
-        #end
         update_list << Product.new(user:user, asin:asin, listing_condition: condition, shipping_type: "default", jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock)
         
         counter += 1
@@ -431,7 +410,7 @@ class Product < ApplicationRecord
       #最低価格の取得
       update_list = Array.new   
       response = nil
-      Retryable.retryable(tries: 5, sleep: 1.0) do
+      Retryable.retryable(tries: 5, sleep: 2.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
       end
 
@@ -533,18 +512,8 @@ class Product < ApplicationRecord
           end
         end
         
-        update_list << Product.new(user:user, asin:asin, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f)
-        
-=begin
-        temp = tproducts.where(asin: asin)
-        if temp != nil then
-          temp.update(
-            us_price: lowestprice.to_f,
-            us_shipping: lowestship.to_f,
-            us_point: lowestpoint.to_f
-          )
-        end
-=end
+        update_list << Product.new(user:user, asin:asin, listing_condition: condition, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f)
+
         counter += 1
         total_counter += 1
         prices = {
@@ -570,7 +539,7 @@ class Product < ApplicationRecord
         logger.debug("====== GET FEE ESTIMATE =======")
         update_list = Array.new
         response2 = nil
-        Retryable.retryable(tries: 5, sleep: 0.5) do
+        Retryable.retryable(tries: 5, sleep: 2.0) do
           response2 = client.get_my_fees_estimate(requests)
         end
         parser2 = response2.parse
@@ -587,7 +556,6 @@ class Product < ApplicationRecord
           fees = result.dig("FeesEstimate")
           price = result.dig("FeesEstimateIdentifier", "PriceToEstimateFees", "ListingPrice", "Amount")
 
-          j += 1
           if fees != nil then
             lists= fees.dig("FeeDetailList", "FeeDetail")
             checker = 0
@@ -608,10 +576,7 @@ class Product < ApplicationRecord
               if checker == 2 then break end
             end
           end
-
-          #temp = tproducts.where(asin: asin)
-
-          #if temp != nil then
+                  
           if referral_fee.to_f != 0 then
             rate = (referral_fee.to_f / price.to_f).round(2)
           else
@@ -622,16 +587,7 @@ class Product < ApplicationRecord
             rate = 0.15
           end
           
-          update_list << Product.new(user:user, asin:asin, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f)
-
-=begin
-          temp.update(
-            referral_fee: referral_fee.to_f,
-            referral_fee_rate: rate,
-            variable_closing_fee: variable_closing_fee.to_f
-          )
-=end
-          #end
+          update_list << Product.new(user: user, asin: asin, listing_condition: condition, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f)
         end
         Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:referral_fee, :referral_fee_rate, :variable_closing_fee]}
         update_list = nil
@@ -667,7 +623,6 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
-
   end
 
   #出品情報の取得
@@ -882,15 +837,9 @@ class Product < ApplicationRecord
           listing_condition = "New"
         end
 
-        asin_list << Product.new(user:user, sku:sku, asin:asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price, max_roi: max_roi, calc_ex_rate: calc_ex_rate, roi: roi, delivery_fee: delivery_fee_default, payoneer_fee: payoneer_fee, exchange_rate: ex_rate, shipping_type: shipping_type, listing_condition: listing_condition)
+        asin_list << Product.new(user: user, sku: sku, asin: asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price, max_roi: max_roi, calc_ex_rate: calc_ex_rate, roi: roi, delivery_fee: delivery_fee_default, payoneer_fee: payoneer_fee, exchange_rate: ex_rate, shipping_type: shipping_type, listing_condition: listing_condition)
       end
-      if Rails.env == 'development'
-        logger.debug("======= DEVELOPMENT =========")
-        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition]}
-      else
-        logger.debug("======= PRODUCTION =========")
-        Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition]}
-      end
+      Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition]}
     end
 
     t = Time.now
