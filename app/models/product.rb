@@ -147,7 +147,7 @@ class Product < ApplicationRecord
         total_counter += 1
         temp = nil
       end
-      if counter > 30000 - 1 then
+      if counter > 29999 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "商品情報取得中\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
@@ -345,8 +345,7 @@ class Product < ApplicationRecord
         counter += 1
         total_counter += 1
       end
-
-      if counter > 30000 then
+      if counter > 29999 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "日本アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
@@ -608,8 +607,7 @@ class Product < ApplicationRecord
           end
         end
       end
-
-      if counter > 30000 then
+      if counter > 29999 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "米国アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
