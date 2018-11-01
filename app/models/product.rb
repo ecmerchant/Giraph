@@ -60,6 +60,7 @@ class Product < ApplicationRecord
     counter = 0
     total_counter = 0
     asins.each_slice(5) do |tasins|
+      update_list = Array.new  
       response = nil
       Retryable.retryable(tries: 5, sleep: 1.2) do
         response = client.get_matching_product_for_id(mp, "ASIN", tasins)
@@ -112,7 +113,7 @@ class Product < ApplicationRecord
           end
         end
 
-        temp = tproducts.where(asin: asin)
+        #temp = tproducts.where(asin: asin)
 
         total_size = size_Height + size_Length + size_Width
         max_size = [size_Height, size_Length, size_Width].max
@@ -131,7 +132,10 @@ class Product < ApplicationRecord
             break
           end
         end
-
+          
+        update_list << Product.new(user: user, asin: asin, size_length: size_Length, size_width: size_Width, size_height: size_Height, size_weight: size_Weight, listing_shipping: shipping_cost, shipping_weight: package_weight)
+        
+=begin
         if temp != nil then
           temp.update(
             jp_title: title,
@@ -143,10 +147,15 @@ class Product < ApplicationRecord
             shipping_weight: package_weight
           )
         end
+=end
         counter += 1
         total_counter += 1
         temp = nil
       end
+            
+      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_title, :size_length, :size_width, :size_height, :size_weight, :listing_shipping, :shipping_weight]}
+      update_list = nil
+            
       if counter > 29999 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -420,6 +429,7 @@ class Product < ApplicationRecord
       requests = []
       i = 0
       #最低価格の取得
+      update_list = Array.new   
       response = nil
       Retryable.retryable(tries: 5, sleep: 1.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
@@ -522,6 +532,10 @@ class Product < ApplicationRecord
             lowestpoint = 0
           end
         end
+        
+        update_list << Product.new(user:user, asin:asin, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f)
+        
+=begin
         temp = tproducts.where(asin: asin)
         if temp != nil then
           temp.update(
@@ -530,6 +544,7 @@ class Product < ApplicationRecord
             us_point: lowestpoint.to_f
           )
         end
+=end
         counter += 1
         total_counter += 1
         prices = {
@@ -546,10 +561,14 @@ class Product < ApplicationRecord
         requests[i] = request
         i += 1
       end
+                
+      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:us_price, :us_shipping, :us_point]}
+      update_list = nil
 
       #手数料の取得
       if fee_check == "TRUE" then
         logger.debug("====== GET FEE ESTIMATE =======")
+        update_list = Array.new
         response2 = nil
         Retryable.retryable(tries: 5, sleep: 0.5) do
           response2 = client.get_my_fees_estimate(requests)
@@ -590,26 +609,32 @@ class Product < ApplicationRecord
             end
           end
 
-          temp = tproducts.where(asin: asin)
+          #temp = tproducts.where(asin: asin)
 
-          if temp != nil then
-            if referral_fee.to_f != 0 then
-              rate = (referral_fee.to_f / price.to_f).round(2)
-            else
-              rate = 0.15
-            end
-
-            if price.to_f == 0 then
-              rate = 0.15
-            end
-
-            temp.update(
-              referral_fee: referral_fee.to_f,
-              referral_fee_rate: rate,
-              variable_closing_fee: variable_closing_fee.to_f
-            )
+          #if temp != nil then
+          if referral_fee.to_f != 0 then
+            rate = (referral_fee.to_f / price.to_f).round(2)
+          else
+            rate = 0.15
           end
+
+          if price.to_f == 0 then
+            rate = 0.15
+          end
+          
+          update_list << Product.new(user:user, asin:asin, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f)
+
+=begin
+          temp.update(
+            referral_fee: referral_fee.to_f,
+            referral_fee_rate: rate,
+            variable_closing_fee: variable_closing_fee.to_f
+          )
+=end
+          #end
         end
+        Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:referral_fee, :referral_fee_rate, :variable_closing_fee]}
+        update_list = nil
       end
       if counter > 29999 then
         t = Time.now
