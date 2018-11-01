@@ -713,7 +713,7 @@ class Product < ApplicationRecord
         genid = "NODATA"
         break
       end
-      sleep(30)
+      sleep(60)
     end
 
     logger.debug("====== generated id =======")
@@ -724,7 +724,7 @@ class Product < ApplicationRecord
       parser = response.parse
       logger.debug("====== report data is ok =======")
       counter = 0
-      parser.each_slice(30000) do |rows|
+      parser.each_slice(5000) do |rows|
         asin_list = Array.new
         rows.each do |row|
           tsku = row[0].to_s
