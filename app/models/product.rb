@@ -56,18 +56,26 @@ class Product < ApplicationRecord
       aws_access_key_id: awskey,
       aws_secret_access_key: skey
     )
-
+    
+    time_counter1 = Time.now.strftime('%s%L').to_i
     counter = 0
     total_counter = 0
     asins.each_slice(5) do |tasins|
       update_list = Array.new  
       response = nil
+      
       Retryable.retryable(tries: 5, sleep: 1.2) do
+        time_counter2 = Time.now.strftime('%s%L').to_i
+        diff_time = time_counter2 - time_counter1
+        while diff_time < 1000.0 do
+          sleep(0.02)
+          time_counter2 = Time.now.strftime('%s%L').to_i
+          diff_time = time_counter2 - time_counter1
+        end
         response = client.get_matching_product_for_id(mp, "ASIN", tasins)
       end
-
       time_counter1 = Time.now.strftime('%s%L').to_i
-
+      
       parser = response.parse
       parser.each do |product|
         if product.class == Hash then
@@ -150,15 +158,6 @@ class Product < ApplicationRecord
         )
         counter = 0
       end
-
-      time_counter2 = Time.now.strftime('%s%L').to_i
-      diff_time = time_counter2 - time_counter1
-
-      while diff_time < 1000.0 do
-        sleep(0.02)
-        time_counter2 = Time.now.strftime('%s%L').to_i
-        diff_time = time_counter2 - time_counter1
-      end
       logger.debug("==== JP_INFO: No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
 
@@ -207,11 +206,19 @@ class Product < ApplicationRecord
 
     counter = 0
     total_counter = 0
-
+    time_counter1 = Time.now.strftime('%s%L').to_i
+    
     asins.each_slice(10) do |tasins|
       update_list = Array.new      
       response = nil
       Retryable.retryable(tries: 5, sleep: 2.0) do
+        time_counter2 = Time.now.strftime('%s%L').to_i
+        diff_time = time_counter2 - time_counter1
+        while diff_time < 1000.0 do
+          sleep(0.02)
+          time_counter2 = Time.now.strftime('%s%L').to_i
+          diff_time = time_counter2 - time_counter1
+        end
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
       end
 
@@ -354,15 +361,6 @@ class Product < ApplicationRecord
         )
         counter = 0
       end
-
-      time_counter2 = Time.now.strftime('%s%L').to_i
-      diff_time = time_counter2 - time_counter1
-
-      while diff_time < 1000.0 do
-        sleep(0.02)
-        time_counter2 = Time.now.strftime('%s%L').to_i
-        diff_time = time_counter2 - time_counter1
-      end
       logger.debug("==== JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
     t = Time.now
@@ -407,15 +405,23 @@ class Product < ApplicationRecord
       aws_access_key_id: awskey,
       aws_secret_access_key: skey
     )
-
+    time_counter1 = Time.now.strftime('%s%L').to_i
     asins.each_slice(10) do |tasins|
       requests = []
       i = 0
       #最低価格の取得
       update_list = Array.new   
       response = nil
+      
       Retryable.retryable(tries: 5, sleep: 2.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
+        time_counter2 = Time.now.strftime('%s%L').to_i
+        diff_time = time_counter2 - time_counter1
+        while diff_time < 1000.0 do
+          sleep(0.02)
+          time_counter2 = Time.now.strftime('%s%L').to_i
+          diff_time = time_counter2 - time_counter1
+        end
       end
 
       time_counter1 = Time.now.strftime('%s%L').to_i
@@ -606,15 +612,6 @@ class Product < ApplicationRecord
           account.cw_room_id
         )
         counter = 0
-      end
-
-      time_counter2 = Time.now.strftime('%s%L').to_i
-      diff_time = time_counter2 - time_counter1
-
-      while diff_time < 1000.0 do
-        sleep(0.02)
-        time_counter2 = Time.now.strftime('%s%L').to_i
-        diff_time = time_counter2 - time_counter1
       end
       logger.debug("==== US_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
