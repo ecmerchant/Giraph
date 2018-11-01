@@ -5,6 +5,8 @@ class Product < ApplicationRecord
   require 'typhoeus'
 
   #validates :sku, uniqueness: { scope: [:user] }
+  
+  PER_NOTICE = ENV['PER_NOTICE'].to_i
 
   #日本アマゾン商品情報の取得
   def check_amazon_jp_info(user, condition)
@@ -147,7 +149,7 @@ class Product < ApplicationRecord
       Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_title, :size_length, :size_width, :size_height, :size_weight, :listing_shipping, :shipping_weight]}
       update_list = nil
             
-      if counter > 29999 then
+      if counter > PER_NOTICE - 1 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "商品情報取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
@@ -350,7 +352,7 @@ class Product < ApplicationRecord
       Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_price, :jp_shipping, :jp_point, :cost_price, :on_sale, :shipping_type]}
       update_list = nil
                   
-      if counter > 29999 then
+      if counter > PER_NOTICE - 1 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "日本アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
@@ -602,7 +604,7 @@ class Product < ApplicationRecord
         Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:referral_fee, :referral_fee_rate, :variable_closing_fee]}
         update_list = nil
       end
-      if counter > 29999 then
+      if counter > PER_NOTICE - 1 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "米国アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
@@ -785,7 +787,7 @@ class Product < ApplicationRecord
     total_counter = 0
 
 
-    targets.each_slice(30000) do |tag|
+    targets.each_slice(1000) do |tag|
       asin_list = Array.new
 
       tag.each do |temp|
@@ -841,6 +843,7 @@ class Product < ApplicationRecord
         asin_list << Product.new(user: user, sku: sku, asin: asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price, max_roi: max_roi, calc_ex_rate: calc_ex_rate, roi: roi, delivery_fee: delivery_fee_default, payoneer_fee: payoneer_fee, exchange_rate: ex_rate, shipping_type: shipping_type, listing_condition: listing_condition)
       end
       Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition]}
+      asin_list = nil  
     end
 
     t = Time.now
