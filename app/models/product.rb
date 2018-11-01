@@ -676,6 +676,12 @@ class Product < ApplicationRecord
   #出品レポートの取得
   def get_listing_report(user)
     logger.debug("===== Start Listing Report =====")
+    per_num = ENV['PER_LIST_NUM']
+    if per_num == nil then
+       per_num = 1000
+    else
+      per_num = per_num.to_i
+    end
     #mp = "A1VC38T7YXB528"
     mp = "ATVPDKIKX0DER"  #アメリカアマゾン
     temp = Account.find_by(user: user)
@@ -724,7 +730,7 @@ class Product < ApplicationRecord
       parser = response.parse
       logger.debug("====== report data is ok =======")
       counter = 0
-      parser.each_slice(10000) do |rows|
+      parser.each_slice(per_num) do |rows|
         asin_list = Array.new
         rows.each do |row|
           tsku = row[0].to_s
