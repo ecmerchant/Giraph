@@ -170,6 +170,10 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
+    
+    if condition == "New" then
+      GetJpInfoJob.set(queue: :jp_item_used_info).perform_later(user, "Used")
+    end          
   end
 
   #日本アマゾンFBA価格の監視
