@@ -71,7 +71,6 @@ class Product < ApplicationRecord
       parser.each do |product|
         if product.class == Hash then
           asin = product.dig('Products', 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          logger.debug("===== ASIN =======\n" + asin.to_s)
           buf = product.dig('Products', 'Product', 'AttributeSets', 'ItemAttributes')
           if buf != nil then
             title = buf.dig("Title")
@@ -85,7 +84,6 @@ class Product < ApplicationRecord
             size_Width = size_Width.round(2)
             size_Weight = size_Weight.round(2)
           else
-            logger.debug("=== CASE NO DATA ===")
             title = "データなし"
             size_Height = 0
             size_Length = 0
@@ -95,7 +93,6 @@ class Product < ApplicationRecord
           end
         else
           asin = product.dig(1, 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          logger.debug("===== ASIN =======\n" + asin.to_s)
           buf = product.dig(1, 'Product', 'AttributeSets', 'ItemAttributes')
           if buf != nil then
             size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
@@ -108,7 +105,6 @@ class Product < ApplicationRecord
             size_Width = size_Width.round(2)
             size_Weight = size_Weight.round(2)
           else
-            logger.debug("=== CASE NO DATA ===")
             size_Height = 0
             size_Length = 0
             size_Width = 0
@@ -149,13 +145,9 @@ class Product < ApplicationRecord
         end
         counter += 1
         total_counter += 1
-        if tasins.length != 5 then
-          p "end"
-          break
-        end
         temp = nil
       end
-      if counter > 30000 then
+      if counter > 30000 - 1 then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "商品情報取得中\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
@@ -175,7 +167,7 @@ class Product < ApplicationRecord
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
       end
-
+      logger.debug("JP_INFO: No." + total_counter.to_s + ", Diff: " + diff_time.to_s)
     end
 
     t = Time.now
@@ -223,8 +215,6 @@ class Product < ApplicationRecord
     total_counter = 0
 
     asins.each_slice(10) do |tasins|
-      p tasins
-
       response = nil
       Retryable.retryable(tries: 5, sleep: 2.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
@@ -236,18 +226,13 @@ class Product < ApplicationRecord
       parser.each do |product|
         if product.class == Hash then
           asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          logger.debug("===== ASIN =======")
-          logger.debug(asin.to_s)
           buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
           lowestprice = 0
           lowestship = 0
           lowestpoint = 0
           jp_stock = false
-          logger.debug (buf.class)
           if buf.class == Array then
-            logger.debug("=== CASE ARRAY ===")
             buf.each do |listing|
-              logger.debug("=== EACH ITEM ===")
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                 if fullfillment == "Amazon" then
@@ -271,7 +256,6 @@ class Product < ApplicationRecord
               end
             end
           elsif buf.class == Hash
-            logger.debug("=== CASE HASH ===")
             listing = buf
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
             if fullfillment == "Amazon" then
@@ -290,28 +274,21 @@ class Product < ApplicationRecord
                 end
               end
             end
-
           else
-            logger.debug("=== CASE NO DATA ===")
             lowestprice = 0
             lowestship = 0
             lowestpoint = 0
             jp_stock = false
           end
         else
-          logger.debug("====== CASE ARRAY ======")
           asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          logger.debug("===== ASIN =======\n" + asin.to_s)
           buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
           lowestprice = 0
           lowestship = 0
           lowestpoint = 0
           jp_stock = false
-          logger.debug (buf.class)
           if buf.class == Array then
-            logger.debug("=== CASE ARRAY ===")
             buf.each do |listing|
-              logger.debug("=== EACH ITEM ===")
               if listing.class == Hash then
                 fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                 if fullfillment == "Amazon" then
@@ -335,7 +312,6 @@ class Product < ApplicationRecord
               end
             end
           elsif buf.class == Hash
-            logger.debug("=== CASE HASH ===")
             listing = buf
             fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
             if fullfillment == "Amazon" then
@@ -355,7 +331,6 @@ class Product < ApplicationRecord
               end
             end
           else
-            logger.debug("=== CASE NO DATA ===")
             lowestprice = 0
             lowestship = 0
             lowestpoint = 0
@@ -391,11 +366,8 @@ class Product < ApplicationRecord
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
       end
-
-      logger.debug("========" + diff_time.to_s + "==========")
-
+      logger.debug("JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s)
     end
-
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n日本アマゾン価格取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
@@ -404,7 +376,6 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
-
   end
 
 
@@ -443,8 +414,6 @@ class Product < ApplicationRecord
     )
 
     asins.each_slice(10) do |tasins|
-      p tasins
-
       requests = []
       i = 0
       #最低価格の取得
@@ -459,7 +428,6 @@ class Product < ApplicationRecord
       parser.each do |product|
         if product.class == Hash then
           asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          logger.debug("===== US ASIN =======\n" + asin.to_s)
           buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
           lowestprice = 0
           lowestship = 0
@@ -500,14 +468,12 @@ class Product < ApplicationRecord
               end
             end
           else
-            logger.debug("=== CASE NO DATA ===")
             lowestprice = 0
             lowestship = 0
             lowestpoint = 0
           end
         else
           asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          logger.debug("===== ASIN =======\n" + asin.to_s)
           buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
           lowestprice = 0
           lowestship = 0
@@ -548,7 +514,6 @@ class Product < ApplicationRecord
               end
             end
           else
-            logger.debug("=== CASE NO DATA ===")
             lowestprice = 0
             lowestship = 0
             lowestpoint = 0
@@ -595,7 +560,6 @@ class Product < ApplicationRecord
         per_item_fee = 0
         fba_fees = 0
         buf.each do |result|
-          logger.debug("====== FEE ESTIMATE ASINS =======")
           tmp = result.dig("FeesEstimateIdentifier")
           asin = result.dig("FeesEstimateIdentifier", "IdValue")
           fees = result.dig("FeesEstimate")
@@ -607,22 +571,17 @@ class Product < ApplicationRecord
             checker = 0
             lists.each do |fee|
               feetype = fee.dig("FeeType")
-              logger.debug(feetype)
               case feetype
                 when "ReferralFee" then
                   referral_fee = fee.dig("FinalFee", "Amount")
-                  logger.debug(referral_fee.to_f)
                   checker += 1
                 when "VariableClosingFee" then
                   variable_closing_fee = fee.dig("FinalFee", "Amount")
-                  logger.debug(variable_closing_fee.to_f)
                   checker += 1
                 when "PerItemFee" then
                   per_item_fee = fee.dig("FinalFee", "Amount")
-                  logger.debug(per_item_fee.to_f)
                 when "FBAFees" then
                   fba_fees = fee.dig("FinalFee", "Amount")
-                  logger.debug(fba_fees.to_f)
               end
               if checker == 2 then break end
             end
@@ -670,9 +629,7 @@ class Product < ApplicationRecord
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
       end
-
-      logger.debug("=======" + diff_time.to_s + "========")
-
+      logger.debug("US_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s)
     end
 
     t = Time.now
