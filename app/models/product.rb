@@ -749,9 +749,11 @@ class Product < ApplicationRecord
           else
             listing_condition = "New"
           end
-
-          logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
-          asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition)
+          
+          if shipping_type == "default" then
+            logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
+            asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition)
+          end
         end
         Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:listing, :shipping_type, :listing_condition]}
         rows = nil
