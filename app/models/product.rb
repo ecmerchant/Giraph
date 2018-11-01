@@ -65,7 +65,8 @@ class Product < ApplicationRecord
     asins.each_slice(5) do |tasins|
       update_list = Array.new  
       response = nil
-      
+      time_counter2 = nil
+      diff_time = nil
       Retryable.retryable(tries: 5, sleep: 1.2) do
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
@@ -213,6 +214,9 @@ class Product < ApplicationRecord
     asins.each_slice(10) do |tasins|
       update_list = Array.new      
       response = nil
+      time_counter2 = nil
+      diff_time = nil
+      
       Retryable.retryable(tries: 5, sleep: 2.0) do
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
@@ -414,6 +418,8 @@ class Product < ApplicationRecord
       #最低価格の取得
       update_list = Array.new   
       response = nil
+      time_counter2 = nil
+      diff_time = nil
       
       Retryable.retryable(tries: 5, sleep: 2.0) do
         response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
