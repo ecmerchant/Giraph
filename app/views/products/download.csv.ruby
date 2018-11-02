@@ -35,7 +35,7 @@ CSV.generate(bom) do |csv|
 
   csv << header
   loop do
-    results = @products.limit(range).offset(pos).pluck(
+    results = @products.offset(pos).limit(range).pluck(
       :asin,
       :sku,
       :jp_price,

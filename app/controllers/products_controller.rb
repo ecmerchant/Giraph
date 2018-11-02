@@ -227,9 +227,9 @@ class ProductsController < ApplicationController
   end
 
   def download
-    @products = Product.where(user: current_user.email).order("RANDOM()").limit(500)
+    @products = Product.where(user: current_user.email)
     if @products != nil then
-      logger.debug("ok")
+      logger.debug("== start download ==")
       respond_to do |format|
         format.html do
         end
