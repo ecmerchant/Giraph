@@ -227,7 +227,15 @@ class ProductsController < ApplicationController
   end
 
   def download
-    @products = Product.where(user: current_user.email)
+
+    if ENV['DL_CONDITION'] == 'NEW' then
+      @products = Product.where(user: current_user.email, listing_condition: "New")
+    elsif ENV['DL_CONDITION'] == 'Used' then 
+      @products = Product.where(user: current_user.email, listing_condition: "Used")
+    else
+      @products = Product.where(user: current_user.email)
+    end
+
     if @products != nil then
       logger.debug("== start download ==")
       respond_to do |format|
