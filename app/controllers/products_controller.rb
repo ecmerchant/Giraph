@@ -230,7 +230,7 @@ class ProductsController < ApplicationController
 
     if ENV['DL_CONDITION'] == 'NEW' then
       @products = Product.where(user: current_user.email, listing_condition: "New")
-    elsif ENV['DL_CONDITION'] == 'Used' then 
+    elsif ENV['DL_CONDITION'] == 'USED' then 
       @products = Product.where(user: current_user.email, listing_condition: "Used")
     else
       @products = Product.where(user: current_user.email)
