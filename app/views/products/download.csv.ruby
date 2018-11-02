@@ -30,8 +30,12 @@ CSV.generate(bom) do |csv|
     "出品中"
   ]
 
-  pos = 0
-  range = 30000
+
+  shift = ENV['DL_SHIFT'].to_i
+  range_max = ENV['DL_RANGE'].to_i
+
+  pos = shift
+  range = 20000
 
   csv << header
   loop do
@@ -65,9 +69,10 @@ CSV.generate(bom) do |csv|
       :listing
     )
     break if results.empty?
-    pos += range
     results.each do |result|
       csv << result
     end
+    pos += range
+    break if pos > range_max    
   end
 end

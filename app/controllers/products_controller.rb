@@ -228,10 +228,7 @@ class ProductsController < ApplicationController
 
   def download
 
-    shift = ENV['DL_SHIFT'].to_i
-    range = ENV['DL_RANGE'].to_i
-
-    @products = Product.where(user: current_user.email).offset(shift).limit(range)
+    @products = Product.where(user: current_user.email)
 
     if @products != nil then
       logger.debug("== start download ==")
