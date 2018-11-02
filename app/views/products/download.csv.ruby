@@ -31,7 +31,7 @@ CSV.generate(bom) do |csv|
   ]
 
   pos = 0
-  range = 10000
+  range = 50000
 
   csv << header
   loop do
