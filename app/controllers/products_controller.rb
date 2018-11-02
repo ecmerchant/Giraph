@@ -23,7 +23,7 @@ class ProductsController < ApplicationController
     limit = ENV['PER_REVISE_NUM']
     if request.post? then
       @targets = Product.where(user: current_user.email, shipping_type: "default", revised: false)
-      @targets = @targets.order("updated_at DESC").limit(limit)
+      @targets = @targets.order("calc_updated_at DESC").limit(limit)
       temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
       @targets.update(revised: true)
       logger.debug(temp)
