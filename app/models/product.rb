@@ -784,11 +784,13 @@ class Product < ApplicationRecord
     delivery_fee_default = account.delivery_fee
     max_roi = account.max_roi
     payoneer_fee = account.payoneer_fee
-    targets = products.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
+    temp = products.all
+    temp = temp.order("calc_updated_at ASC")
+    targets = temp.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-    msg = "=========================\n価格計算取得開始\n開始時刻：" + strTime + "\n========================="
+    msg = "=========================\n価格計算開始\n開始時刻：" + strTime + "\n========================="
     account.msend(
       msg,
       account.cw_api_token,
@@ -853,11 +855,24 @@ class Product < ApplicationRecord
         else
           listing_condition = "New"
         end
-
-        asin_list << Product.new(user: user, sku: sku, asin: asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price, max_roi: max_roi, calc_ex_rate: calc_ex_rate, roi: roi, delivery_fee: delivery_fee_default, payoneer_fee: payoneer_fee, exchange_rate: ex_rate, shipping_type: shipping_type, listing_condition: listing_condition)
+        asin_list << Product.new(user: user, sku: sku, asin: asin, us_listing_price: list_price, profit: profit, minimum_listing_price: min_price, max_roi: max_roi, calc_ex_rate: calc_ex_rate, roi: roi, delivery_fee: delivery_fee_default, payoneer_fee: payoneer_fee, exchange_rate: ex_rate, shipping_type: shipping_type, listing_condition: listing_condition, calc_updated_at: Time.now)
+        counter += 1
+        total_counter += 1
       end
-      Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition]}
+      Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition, :calc_updated_at]}
       asin_list = nil
+      if counter > PER_NOTICE - 1 then
+        t = Time.now
+        strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+        msg = "価格計算開始\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件計算済み"
+        account.msend(
+          msg,
+          account.cw_api_token,
+          account.cw_room_id
+        )
+        counter = 0
+      end
+
     end
 
     t = Time.now
