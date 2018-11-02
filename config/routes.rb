@@ -14,6 +14,7 @@ Rails.application.routes.draw do
   post 'products/order'
 
   get 'products/result'
+  get 'products/reset'
 
   get 'products/download'
 

@@ -22,9 +22,10 @@ class ProductsController < ApplicationController
     @login_user = current_user
     limit = ENV['PER_REVISE_NUM']
     if request.post? then
-      @targets = Product.where(user: current_user.email, shipping_type: "default")
+      @targets = Product.where(user: current_user.email, shipping_type: "default", revised: false)
       @targets = @targets.order("updated_at DESC").limit(limit)
       temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
+      @targets.update(revised: true)
       logger.debug(temp)
       tag = Product.new
       feed_id = tag.submit_feed(current_user.email, temp)
@@ -40,7 +41,7 @@ class ProductsController < ApplicationController
   def result
     user = current_user.email
     feed_id = Account.find_by(user: user).feed_submission_id
-    GetFeedResultJob.perform_later(user, feed_id)
+    GetFeedResultJob.set(queue: :feed_result).perform_later(user, feed_id)
     redirect_to products_revise_path
   end
 
@@ -128,7 +129,7 @@ class ProductsController < ApplicationController
 
   def get_jp_info
     user = current_user.email
-    GetJpInfoJob.set(queue: :jp_item_info).perform_later(user, "New")
+    GetJpInfoJob.set(queue: :jp_new_info).perform_later(user, "New")
     redirect_to products_show_path
   end
 
@@ -172,6 +173,11 @@ class ProductsController < ApplicationController
   def calculate
     user = current_user.email
     GetCalcJob.set(queue: :item_calc).perform_later(user)
+    redirect_to products_show_path
+  end
+
+  def reset
+    Product.all.update(revised: false)
     redirect_to products_show_path
   end
 

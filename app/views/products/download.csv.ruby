@@ -1,7 +1,6 @@
 require 'csv'
-
-CSV.generate do |csv|
-
+bom = "\uFEFF"
+CSV.generate(bom) do |csv|
   header = [
     "ASIN",
     "SKU",
@@ -27,42 +26,48 @@ CSV.generate do |csv|
     "利益[円]",
     "最低販売価格[$]",
     "ROI[%]",
-    "国内在庫 出品中"
+    "国内在庫",
+    "出品中"
   ]
 
+  pos = 0
+  range = 10000
+
   csv << header
-  @products.each_with_index do |product, k|
-    column_values = [
-      product.asin,
-      product.sku,
-      product.jp_price.to_i,
-      product.jp_point.to_i,
-      product.cost_price.to_i,
-      product.size_length,
-      product.size_width,
-      product.size_height,
-      product.size_weight,
-      product.shipping_weight,
-      product.us_price,
-      product.us_shipping,
-      product.max_roi,
-      product.us_listing_price,
-      product.referral_fee,
-      product.referral_fee_rate,
-      product.variable_closing_fee,
-      product.listing_shipping.to_i,
-      product.delivery_fee.to_i,
-      product.exchange_rate,
-      product.payoneer_fee,
-      product.calc_ex_rate,
-      product.profit.to_i,
-      product.minimum_listing_price,
-      product.roi,
-      product.on_sale,
-      product.listing
-    ]
-    logger.debug(k)
-    csv << column_values
-    if k > 500 then break end
+  loop do
+    results = @products.limit(range).offset(pos).pluck(
+      :asin,
+      :sku,
+      :jp_price,
+      :jp_point,
+      :cost_price,
+      :size_length,
+      :size_width,
+      :size_height,
+      :size_weight,
+      :shipping_weight,
+      :us_price,
+      :us_shipping,
+      :max_roi,
+      :us_listing_price,
+      :referral_fee,
+      :referral_fee_rate,
+      :variable_closing_fee,
+      :listing_shipping,
+      :delivery_fee,
+      :exchange_rate,
+      :payoneer_fee,
+      :calc_ex_rate,
+      :profit,
+      :minimum_listing_price,
+      :roi,
+      :on_sale,
+      :listing
+    )
+    break if results.empty?
+    pos += range
+    results.each do |result|
+      csv << result
+    end
   end
 end
