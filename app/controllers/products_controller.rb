@@ -228,13 +228,10 @@ class ProductsController < ApplicationController
 
   def download
 
-    if ENV['DL_CONDITION'] == 'NEW' then
-      @products = Product.where(user: current_user.email, listing_condition: "New")
-    elsif ENV['DL_CONDITION'] == 'USED' then 
-      @products = Product.where(user: current_user.email, listing_condition: "Used")
-    else
-      @products = Product.where(user: current_user.email)
-    end
+    shift = ENV['DL_SHIFT'].to_i
+    range = ENV['DL_RANGE'].to_i
+
+    @products = Product.where(user: current_user.email).offset(shift).limit(range)
 
     if @products != nil then
       logger.debug("== start download ==")
