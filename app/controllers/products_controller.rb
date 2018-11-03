@@ -185,19 +185,7 @@ class ProductsController < ApplicationController
 
   def reset
     if request.post? then
-      data = Product.where(user: current_user.email).pluck(:sku)
-      data.each_slice(1000) do |tdata|
-        uplist = Array.new
-        tdata.each do |row|
-          logger.debug(row)
-          if row != nil then
-            uplist << Product.new(user: current_user.email, sku: row.to_s, revised: false)
-          end 
-        end
-        Product.import uplist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
-        tdata = nil
-        uplist = nil
-      end
+      ItemResetJob.set(queue: :item_reset).perform_later(current_user.email)
     end
     redirect_to products_show_path
   end
