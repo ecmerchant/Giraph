@@ -89,3 +89,5 @@ gem 'rubyXL'
 # gem for pagination
 gem 'kaminari'
 gem 'kaminari-bootstrap'
+
+gem 'loofah', '>= 2.2.3'

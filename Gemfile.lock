@@ -119,7 +119,7 @@ GEM
     listen (3.0.8)
       rb-fsevent (~> 0.9, >= 0.9.4)
       rb-inotify (~> 0.9, >= 0.9.7)
-    loofah (2.2.2)
+    loofah (2.2.3)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
     mail (2.7.0)
@@ -292,6 +292,7 @@ DEPENDENCIES
   kaminari
   kaminari-bootstrap
   listen (~> 3.0.5)
+  loofah (>= 2.2.3)
   nokogiri
   peddler
   pg (= 0.21.0)
