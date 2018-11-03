@@ -1008,7 +1008,11 @@ class Product < ApplicationRecord
           price = ""
         end
         fulfillment_channel = row[4]
-        buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
+        if price > 0 then
+          buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
+        else
+          buf = [sku, "", "", "", 0, htime, fulfillment_channel]
+        end
         part = buf.join("\t")
         stream = stream + part + "\n"
         uplist << Feed.new(user: user.to_s, sku: sku.to_s, price: price.to_s, quantity: quantity.to_s, handling_time: htime.to_s, fulfillment_channel: fulfillment_channel.to_s)

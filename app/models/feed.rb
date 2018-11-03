@@ -27,8 +27,8 @@ class Feed < ApplicationRecord
     temp = Feed.where(user: user)
     temp.update(result: "成功")
 
-    if parser != nil then
-      parser.each_slice(1000) do |rows|
+    if response.content != nil then
+      response.content.each_slice(1000) do |rows|
         feed_list = Array.new
         rows.each do |row|
           tsku = row[1]
