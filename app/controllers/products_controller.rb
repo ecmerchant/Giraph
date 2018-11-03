@@ -20,6 +20,8 @@ class ProductsController < ApplicationController
 
   def revise
     @login_user = current_user
+    @account = Account.find_by(user: current_user.email)
+    @feeds = Feed.where(user: current_user.email)
     limit = ENV['PER_REVISE_NUM']
     if request.post? then
       @targets = Product.where(user: current_user.email, shipping_type: "default", revised: false)
@@ -32,9 +34,6 @@ class ProductsController < ApplicationController
       logger.debug("====== Feed Subission ID ======")
       logger.debug(feed_id)
       logger.debug("===============================")
-    else
-      @account = Account.find_by(user: current_user.email)
-      @feeds = Feed.where(user: current_user.email)
     end
   end
 
@@ -232,7 +231,7 @@ class ProductsController < ApplicationController
       if @products != nil then
         @products.delete_all
       end
-    end 
+    end
     redirect_to root_path
   end
 
