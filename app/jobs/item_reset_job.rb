@@ -14,7 +14,7 @@ class ItemResetJob < ApplicationJob
       tdata.each do |row|
         logger.debug(row)
         if row != nil then
-          uplist << Product.new(user: current_user.email, sku: row.to_s, revised: false)
+          uplist << Product.new(user: user, sku: row.to_s, revised: false)
         end
       end
       Product.import uplist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
