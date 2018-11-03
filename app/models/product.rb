@@ -683,7 +683,7 @@ class Product < ApplicationRecord
     sid = temp.us_seller_id1
     skey = temp.us_secret_key1
     awskey = temp.us_aws_access_key_id1
-    products = Product.where(user:user)
+    products = Product.where(user: user)
     report_type = "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_"
 
     client = MWS.reports(
@@ -721,6 +721,7 @@ class Product < ApplicationRecord
     logger.debug(genid)
 
     if genid.to_s != "NODATA" then
+      products.update(sku_checked: false)
       response = client.get_report(genid)
       parser = response.parse
       logger.debug("====== report data is ok =======")
@@ -753,12 +754,12 @@ class Product < ApplicationRecord
 
           if shipping_type == "default" then
             logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
-            asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition)
+            asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition, sku_checked: true)
           end
         end
 
         begin
-          Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :listing, :shipping_type, :listing_condition]}, validate: false
+          Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :listing, :shipping_type, :listing_condition, :sku_checked]}, validate: false
         rescue => e
           logger.debug("========== EMG ============")
           Product.import asin_list, on_duplicate_key_ignore: true

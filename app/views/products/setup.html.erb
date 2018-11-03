@@ -68,7 +68,16 @@
             </span>
           </label>
         <% end %>
-
+        <br>
+        <br>
+        <%= form_tag('/products/clear', method:'delete') do %>
+          <%= submit_tag("SKU無効データ削除", class: 'btn btn-alert') %>
+        <% end %>
+        <br>
+        <br>
+        <%= form_tag('/products/delete', method:'delete') do %>
+          <%= submit_tag("全データ削除", class: 'btn btn-danger') %>
+        <% end %>
       </div>
     </div>
   </div>

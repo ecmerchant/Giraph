@@ -176,6 +176,14 @@ class ProductsController < ApplicationController
     redirect_to products_show_path
   end
 
+  def clear
+    if request.delete? then
+      products = Product.where(user: current_user.email, sku_checked: false)
+      products.delete_all
+    end
+    redirect_to products_show_path
+  end
+
   def reset
     Product.all.update(revised: false)
     redirect_to products_show_path
@@ -219,10 +227,12 @@ class ProductsController < ApplicationController
   end
 
   def delete
-    @products = Product.where(user: current_user.email)
-    if @products != nil then
-      @products.delete_all
-    end
+    if request.delete? then
+      @products = Product.where(user: current_user.email)
+      if @products != nil then
+        @products.delete_all
+      end
+    end 
     redirect_to root_path
   end
 

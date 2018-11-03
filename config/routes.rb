@@ -4,11 +4,13 @@ Rails.application.routes.draw do
 
   root to: 'products#show'
   get 'products/show'
-  get 'products/delete'
   get 'products/exchange'
 
   get 'products/revise'
   post 'products/revise'
+
+  delete 'products/delete'
+  delete 'products/clear'  
 
   get 'products/order'
   post 'products/order'
