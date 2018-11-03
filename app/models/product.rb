@@ -535,12 +535,12 @@ class Product < ApplicationRecord
         end
 
         if asin != nil then
-          update_list << Product.new(user:user, asin:asin, listing_condition: condition, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f, us_price_updated_at: Time.now)
+          update_list << Product.new(user: user, asin: asin, listing_condition: condition, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f, us_price_updated_at: Time.now)
         end
         counter += 1
         total_counter += 1
         prices = {
-          ListingPrice: { Amount: lowestprice.to_f, CurrencyCode: "USD", }
+          ListingPrice: {Amount: lowestprice.to_f, CurrencyCode: "USD"}
         }
         request = {
           MarketplaceId: mp,
@@ -702,6 +702,9 @@ class Product < ApplicationRecord
     }
     process = ""
     logger.debug(reqid)
+
+    once = false
+
     while process != "_DONE_" && process != "_DONE_NO_DATA_"
       response = client.get_report_request_list(mws_options)
       parser = response.parse
@@ -714,14 +717,29 @@ class Product < ApplicationRecord
         genid = "NODATA"
         break
       end
-      sleep(60)
+      if once == false then
+        logger.debug("====== UPDATE SKU START =======")
+        targets = products.pluck(:sku)
+        targets.each_slice(1000) do tag
+            sku_update_list = Array.new
+            tag.each do |tsku|
+              sku_update_list << Product.new(user: user, sku: tsku, sku_checked: false)
+            end
+            Product.import sku_update_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:sku_checked]}, validate: false
+            sku_update_list = nil
+        end
+        logger.debug("====== UPDATE SKU END =======")
+        once = true
+      else
+        sleep(60)
+      end
     end
 
     logger.debug("====== generated id =======")
     logger.debug(genid)
 
     if genid.to_s != "NODATA" then
-      products.update(sku_checked: false)
+
       response = client.get_report(genid)
       parser = response.parse
       logger.debug("====== report data is ok =======")
