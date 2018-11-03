@@ -184,7 +184,21 @@ class ProductsController < ApplicationController
   end
 
   def reset
-    Product.all.update(revised: false)
+    if request.post? then
+      data = Product.where(user: current_user.email).pluck(:sku)
+      data.each_slice(1000) do |tdata|
+        uplist = Array.new
+        tdata.each do |row|
+          logger.debug(row)
+          if row != nil then
+            uplist << Product.new(user: current_user.email, sku: row.to_s, revised: false)
+          end 
+        end
+        Product.import uplist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
+        tdata = nil
+        uplist = nil
+      end
+    end
     redirect_to products_show_path
   end
 

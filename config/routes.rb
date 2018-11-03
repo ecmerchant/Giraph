@@ -10,13 +10,13 @@ Rails.application.routes.draw do
   post 'products/revise'
 
   delete 'products/delete'
-  delete 'products/clear'  
+  delete 'products/clear'
 
   get 'products/order'
   post 'products/order'
 
   get 'products/result'
-  get 'products/reset'
+  post 'products/reset'
 
   get 'products/download'
 

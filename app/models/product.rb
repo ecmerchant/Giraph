@@ -176,6 +176,11 @@ class Product < ApplicationRecord
     if condition == "New" then
       GetJpInfoJob.set(queue: :jp_used_info).perform_later(user, "Used")
     end
+
+    if condition == "Used" then
+      GetJpInfoJob.set(queue: :jp_new_info).perform_later(user, "New")
+    end
+
   end
 
   #日本アマゾンFBA価格の監視
@@ -381,6 +386,15 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
+
+    if condition == "New" then
+      GetJpPriceJob.set(queue: :jp_used_item).perform_later(user, "Used")
+    end
+
+    if condition == "Used" then
+      GetJpPriceJob.set(queue: :jp_new_item).perform_later(user, "New")
+    end
+
   end
 
 
@@ -638,6 +652,15 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
+
+    if condition == "New" then
+      GetUsPriceJob.set(queue: :us_used_item).perform_later(user, "Used")
+    end
+
+    if condition == "Used" then
+      GetUsPriceJob.set(queue: :us_new_item).perform_later(user, "New")
+    end
+
   end
 
   #出品情報の取得
@@ -807,6 +830,32 @@ class Product < ApplicationRecord
     temp = temp.order("calc_updated_at ASC")
     targets = temp.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
+    #===========
+    url = "https://info.finance.yahoo.co.jp/fx/"
+    begin
+      html = open(url) do |f|
+        charset = f.charset
+        f.read # htmlを読み込んで変数htmlに渡す
+      end
+      doc = Nokogiri::HTML.parse(html, nil)
+      exrate = doc.xpath('//span[@id="USDJPY_top_bid"]')
+      if exrate != nil then
+        exrate = exrate.text.to_f
+      end
+      atemp = Account.find_or_create_by(user: user)
+      calc_rate = exrate * (100.0 - temp.payoneer_fee) / 100.0
+      atemp.update(
+        exchange_rate: exrate,
+        calc_ex_rate: calc_rate.round(2)
+      )
+      logger.debug(exrate)
+    rescue OpenURI::HTTPError => error
+      logger.debug("==== EXCHANGE RATE ERROR ====")
+      logger.debug(error)
+    end
+    #===========
+
+
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n価格計算開始\n開始時刻：" + strTime + "\n========================="
@@ -891,7 +940,6 @@ class Product < ApplicationRecord
         )
         counter = 0
       end
-
     end
 
     t = Time.now
@@ -903,12 +951,12 @@ class Product < ApplicationRecord
       account.cw_room_id
     )
 
+    GetCalcJob.set(queue: :item_calc).perform_later(user)
+
   end
 
   def submit_feed(user, data)
-    fba = ""
     mp = "ATVPDKIKX0DER"  #アメリカアマゾン
-
     account = Account.find_by(user: user)
     sid = account.us_seller_id1
     skey = account.us_secret_key1
@@ -946,38 +994,37 @@ class Product < ApplicationRecord
 
     htime = handling_time
 
-    data.each_with_index do |row, i|
-      logger.debug(row)
-      sku = row[0]
-      if row[2] == true then
-        quantity = 1
-        price = row[1]
-      else
-        quantity = 0
-        price = ""
+    data.each_slice(1000) do |tdata|
+      uplist = Array.new
+      skulist = Array.new
+      tdata.each do |row|
+        logger.debug(row)
+        sku = row[0]
+        if row[2] == true then
+          quantity = 1
+          price = row[1]
+        else
+          quantity = 0
+          price = ""
+        end
+        fulfillment_channel = row[4]
+        buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
+        part = buf.join("\t")
+        stream = stream + part + "\n"
+        uplist << Feed.new(user: user.to_s, sku: sku.to_s, price: price.to_s, quantity: quantity.to_s, handling_time: htime.to_s, fulfillment_channel: fulfillment_channel.to_s)
+        skulist << Product.new(user: user, sku: sku.to_s, revised: true)
       end
-      fulfillment_channel = row[4]
-      buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
-      part = buf.join("\t")
-      stream = stream + part + "\n"
-      Feed.create(
-        user: user.to_s,
-        sku: sku.to_s,
-        price: price.to_s,
-        quantity: quantity.to_s,
-        handling_time: htime.to_s,
-        fulfillment_channel: fulfillment_channel.to_s
-       )
+      Feed.import uplist
+      Product.import skulist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
+      uplist = nil
+      skulist = nil
+      tdata = nil
     end
-
     logger.debug(stream)
     feed_type = "_POST_FLAT_FILE_PRICEANDQUANTITYONLY_UPDATE_DATA_"
     parser = client.submit_feed(stream, feed_type)
     doc = Nokogiri::XML(parser.body)
     submissionId = doc.xpath(".//mws:FeedSubmissionId", {"mws"=>"http://mws.amazonaws.com/doc/2009-01-01/"}).text
-    Feed.where(user: user).update(
-      submission_id: submissionId.to_s
-    )
 
     account.update(
       feed_submission_id: submissionId.to_s,
