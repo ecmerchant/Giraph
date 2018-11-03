@@ -720,7 +720,7 @@ class Product < ApplicationRecord
       if once == false then
         logger.debug("====== UPDATE SKU START =======")
         targets = products.pluck(:sku)
-        targets.each_slice(1000) do tag
+        targets.each_slice(1000) do |tag|
             sku_update_list = Array.new
             tag.each do |tsku|
               sku_update_list << Product.new(user: user, sku: tsku, sku_checked: false)
