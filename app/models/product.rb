@@ -948,9 +948,7 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
-
-    GetCalcJob.set(queue: :item_calc).perform_later(user)
-
+    #GetCalcJob.set(queue: :item_calc).perform_later(user)
   end
 
   def submit_feed(user, data)
