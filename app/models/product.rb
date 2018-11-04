@@ -888,7 +888,7 @@ class Product < ApplicationRecord
 
         if us_price != 0 then
           list_price = us_price + us_shipping
-          profit = (list_price - referral_fee - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
+          profit = ((1 - referral_fee_rate) * list_price - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
           profit = profit.round(0)
         else
           profit = max_roi / 100.0 * (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate).round(0)
