@@ -36,14 +36,15 @@ class Feed < ApplicationRecord
       uplist = nil
     end
 
-    if response.content != nil then
-      response.content.each_slice(1000) do |rows|
+    if parser != nil then
+      parser.each_slice(1000) do |rows|
         feed_list = Array.new
         rows.each do |row|
           tsku = row[1]
           if tsku != "sku" then
             terror = "エラー：" + row[4].to_s
             feed_list << Feed.new(user: user, sku: tsku, result: terror)
+            logger.debug(tsku + " " + teeror)
           end
         end
         Feed.import feed_list, on_duplicate_key_update: {constraint_name: :for_upsert_feed, columns: [:result]}
