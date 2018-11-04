@@ -28,11 +28,7 @@ class ProductsController < ApplicationController
       @targets = Product.where(user: current_user.email, shipping_type: "default", revised: false)
       @targets = @targets.order("calc_updated_at DESC").limit(limit)
       temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-      tag = Product.new
-      feed_id = tag.submit_feed(current_user.email, temp)
-      logger.debug("====== Feed Subission ID ======")
-      logger.debug(feed_id)
-      logger.debug("===============================")
+      Product.new.submit_feed(current_user.email, temp)
     end
   end
 

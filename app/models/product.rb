@@ -1010,7 +1010,7 @@ class Product < ApplicationRecord
         if price != "" then
           if price != 0 then
             buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
-          end 
+          end
         else
           buf = [sku, "", "", "", 0, htime, fulfillment_channel]
         end
@@ -1044,6 +1044,5 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
-    return submissionId
   end
 end
