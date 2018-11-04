@@ -24,8 +24,17 @@ class Feed < ApplicationRecord
     logger.debug(response.summary)
     logger.debug(response.content)
 
-    temp = Feed.where(user: user)
-    temp.update(result: "成功")
+    temp = Feed.where(user: user).pluck(:sku)
+    temp.each_slice(1000) do |feeds|
+      uplist = Array.new
+      feeds.each do |tt|
+        tsku = tt
+        uplist << Feed.new(user: user, sku: tsku, result: "成功")
+      end
+      Feed.import uplist, on_duplicate_key_update: {constraint_name: :for_upsert_feed, columns: [:result]}
+      feeds = nil
+      uplist = nil
+    end
 
     if response.content != nil then
       response.content.each_slice(1000) do |rows|
