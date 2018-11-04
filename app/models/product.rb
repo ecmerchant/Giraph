@@ -1007,8 +1007,10 @@ class Product < ApplicationRecord
           price = ""
         end
         fulfillment_channel = row[4]
-        if price > 0 then
-          buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
+        if price != "" then
+          if price != 0 then
+            buf = [sku, price, 1.0, price, quantity, htime, fulfillment_channel]
+          end 
         else
           buf = [sku, "", "", "", 0, htime, fulfillment_channel]
         end
