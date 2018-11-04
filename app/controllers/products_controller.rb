@@ -21,7 +21,7 @@ class ProductsController < ApplicationController
   def revise
     @login_user = current_user
     @account = Account.find_by(user: current_user.email)
-    @feeds = Feed.where(user: current_user.email)
+    @feeds = Feed.where(user: current_user.email).where.not(result: "成功")
     limit = ENV['PER_REVISE_NUM']
     @products = @feeds.page(params[:page]).per(PER)
     if request.post? then
