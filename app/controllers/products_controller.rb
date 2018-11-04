@@ -21,14 +21,15 @@ class ProductsController < ApplicationController
   def revise
     @login_user = current_user
     @account = Account.find_by(user: current_user.email)
-    @feeds = Feed.where(user: current_user.email).where.not(result: "成功")
+    @feeds = Feed.where(user: current_user.email)
     limit = ENV['PER_REVISE_NUM']
-    @products = @feeds.page(params[:page]).per(PER)
+    @products = @feeds.where.not(result: "成功").page(params[:error_page]).per(PER)
+    @sproducts = @feeds.where(result: "成功").page(params[:success_page]).per(PER)
     if request.post? then
       @targets = Product.where(user: current_user.email, shipping_type: "default", revised: false)
       @targets = @targets.order("calc_updated_at DESC").limit(limit)
       temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-      Product.new.submit_feed(current_user.email, temp)
+      SubmitFeedJob.perform_later(current_user.email, temp)
     end
   end
 
