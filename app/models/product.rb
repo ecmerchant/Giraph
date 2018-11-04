@@ -842,9 +842,8 @@ class Product < ApplicationRecord
       if exrate != nil then
         exrate = exrate.text.to_f
       end
-      atemp = Account.find_or_create_by(user: user)
-      calc_rate = exrate * (100.0 - temp.payoneer_fee) / 100.0
-      atemp.update(
+      calc_rate = exrate * (100.0 - account.payoneer_fee) / 100.0
+      account.update(
         exchange_rate: exrate,
         calc_ex_rate: calc_rate.round(2)
       )
