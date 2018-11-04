@@ -23,6 +23,7 @@ class ProductsController < ApplicationController
     @account = Account.find_by(user: current_user.email)
     @feeds = Feed.where(user: current_user.email)
     limit = ENV['PER_REVISE_NUM']
+    @products = @feeds.page(params[:page]).per(PER)
     if request.post? then
       @targets = Product.where(user: current_user.email, shipping_type: "default", revised: false)
       @targets = @targets.order("calc_updated_at DESC").limit(limit)
