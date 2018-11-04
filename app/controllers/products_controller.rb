@@ -103,8 +103,6 @@ class ProductsController < ApplicationController
     user = current_user.email
     condition = "New"
     GetJpPriceJob.set(queue: :jp_new_item).perform_later(user, condition)
-    condition = "Used"
-    GetJpPriceJob.set(queue: :jp_used_item).perform_later(user, condition)
     redirect_to products_show_path
   end
 
@@ -117,8 +115,6 @@ class ProductsController < ApplicationController
     end
     condition = "New"
     GetUsPriceJob.set(queue: :us_new_item).perform_later(user, condition, fee_check)
-    condition = "Used"
-    GetUsPriceJob.set(queue: :us_used_item).perform_later(user, condition, fee_check)
     redirect_to products_show_path
   end
 
