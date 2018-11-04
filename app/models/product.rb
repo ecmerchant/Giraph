@@ -898,7 +898,7 @@ class Product < ApplicationRecord
           profit = profit.round(0)
           list_price = ((cost + profit) / calc_ex_rate).round(2)
         end
-        
+
         roi = profit / (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate).round(1)
         roi = roi * 100.0
         roi = roi.round(1)
@@ -989,7 +989,6 @@ class Product < ApplicationRecord
     if temp != nil then
       temp.delete_all
     end
-
     htime = handling_time
 
     data.each_slice(1000) do |tdata|
@@ -998,25 +997,27 @@ class Product < ApplicationRecord
       tdata.each do |row|
         logger.debug(row)
         sku = row[0]
-        if row[2] == true then
-          quantity = 1
-          price = row[1]
-        else
-          quantity = 0
-          price = ""
-        end
-        fulfillment_channel = row[4]
-        if price != "" then
-          if price != 0 then
-            buf = [sku, price, 0.1, price, quantity, htime, fulfillment_channel]
+        if sku != nil || sku != "" then
+          if row[2] == true then
+            quantity = 1
+            price = row[1]
+          else
+            quantity = 0
+            price = ""
           end
-        else
-          buf = [sku, "", "", "", 0, htime, fulfillment_channel]
+          fulfillment_channel = row[4]
+          if price != "" then
+            if price != 0 then
+              buf = [sku, price, 0.1, price, quantity, htime, fulfillment_channel]
+            end
+          else
+            buf = [sku, "", "", "", 0, htime, fulfillment_channel]
+          end
+          part = buf.join("\t")
+          stream = stream + part + "\n"
+          uplist << Feed.new(user: user.to_s, sku: sku.to_s, price: price.to_s, quantity: quantity.to_s, handling_time: htime.to_s, fulfillment_channel: fulfillment_channel.to_s)
+          skulist << Product.new(user: user, sku: sku.to_s, revised: true)
         end
-        part = buf.join("\t")
-        stream = stream + part + "\n"
-        uplist << Feed.new(user: user.to_s, sku: sku.to_s, price: price.to_s, quantity: quantity.to_s, handling_time: htime.to_s, fulfillment_channel: fulfillment_channel.to_s)
-        skulist << Product.new(user: user, sku: sku.to_s, revised: true)
       end
       Feed.import uplist
       Product.import skulist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
