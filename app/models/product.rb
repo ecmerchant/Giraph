@@ -1036,6 +1036,8 @@ class Product < ApplicationRecord
       feed_submit_at: DateTime.now
     )
 
+    GetFeedResultJob.set(queue: :feed_result).perform_later(user, submissionId)
+
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n価格改定終了\n終了時刻：" + strTime + "\nフィードID：" + submissionId.to_s + "\n========================="
