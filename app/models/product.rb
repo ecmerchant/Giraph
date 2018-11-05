@@ -884,6 +884,8 @@ class Product < ApplicationRecord
         shipping = temp[6].to_f
         referral_fee_rate = temp[7].to_f
         sku = temp[8]
+        
+        us_sell_fee = 0.0
 
         if (1.0 - referral_fee_rate) != 0 then
           min_price = (((cost + shipping + delivery_fee_default) / calc_ex_rate + variable_closing_fee) / (1.0 - referral_fee_rate)).round(2)
@@ -896,17 +898,26 @@ class Product < ApplicationRecord
           if list_price < min_price then
             list_price = min_price
           end
-          profit = ((1 - referral_fee_rate) * list_price - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
+          us_sell_fee = list_price * referral_fee_rate
+          if us_sell_fee < 1.0 then
+            us_sell_fee = 1.0
+          end 
+          profit = (list_price - us_sell_fee - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
           profit = profit.round(0)
         else
           profit = max_roi / 100.0 * (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate).round(0)
           profit = profit.round(0)
           list_price = ((cost + profit) / calc_ex_rate).round(2)
+          us_sell_fee = list_price * referral_fee_rate
+          if us_sell_fee < 1.0 then
+            us_sell_fee = 1.0
+          end 
         end
 
-        roi = profit / (cost + shipping + delivery_fee_default + (referral_fee + variable_closing_fee) * calc_ex_rate).round(1)
+        roi = profit / (cost + shipping + delivery_fee_default + (us_sell_fee + variable_closing_fee) * calc_ex_rate).round(1)
         roi = roi * 100.0
         roi = roi.round(1)
+            
         if cost != 0 then
           list_price = list_price.round(2)
         else
