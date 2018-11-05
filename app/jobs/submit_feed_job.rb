@@ -7,8 +7,8 @@ class SubmitFeedJob < ApplicationJob
     logger.error exception
   end
 
-  def perform(user, data)
-    Product.new.submit_feed(user, data)
+  def perform(user)
+    Product.new.submit_feed(user)
   end
 
 end
