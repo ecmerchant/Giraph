@@ -26,10 +26,7 @@ class ProductsController < ApplicationController
     @products = @feeds.where.not(result: "成功").page(params[:error_page]).per(PER)
     @sproducts = @feeds.where(result: "成功").page(params[:success_page]).per(PER)
     if request.post? then
-      @targets = Product.where(user: current_user.email, shipping_type: "default", revised: false)
-      @targets = @targets.order("calc_updated_at DESC").limit(limit)
-      temp = @targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-      SubmitFeedJob.perform_later(current_user.email, temp)
+      SubmitFeedJob.perform_later(current_user.email)
     end
   end
 
