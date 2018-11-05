@@ -971,13 +971,25 @@ class Product < ApplicationRecord
     #GetCalcJob.set(queue: :item_calc).perform_later(user)
   end
 
-  def submit_feed(user, data)
+  def submit_feed(user)
     mp = "ATVPDKIKX0DER"  #アメリカアマゾン
     account = Account.find_by(user: user)
     sid = account.us_seller_id1
     skey = account.us_secret_key1
     awskey = account.us_aws_access_key_id1
     handling_time = account.handling_time
+    
+    Product.new.calc_profit(user)
+    
+    limit = ENV['PER_REVISE_NUM'].to_i
+    
+    if limit == 0 then 
+      limit = 20000
+    end 
+    
+    targets = Product.where(user: user, shipping_type: "default", revised: false)
+    targets = targets.order("calc_updated_at DESC").limit(limit)
+    data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
 
     client = MWS.feeds(
       marketplace: mp,
