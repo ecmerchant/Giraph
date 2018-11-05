@@ -3,7 +3,7 @@ class Product < ApplicationRecord
   require 'peddler'
   require 'activerecord-import'
   require 'typhoeus'
-
+  require 'open-uri'
 
   PER_NOTICE = ENV['PER_NOTICE'].to_i
 
