@@ -615,7 +615,11 @@ class Product < ApplicationRecord
           end
 
           if referral_fee.to_f != 0 then
-            rate = (referral_fee.to_f / price.to_f).round(2)
+            if referral_fee.to_f > 1.0 && referral_fee.to_f > price.to_f then
+              rate = (referral_fee.to_f / price.to_f).round(2)
+            else
+              rate = 0.15
+            end
           else
             rate = 0.15
           end
@@ -623,6 +627,7 @@ class Product < ApplicationRecord
           if price.to_f == 0 then
             rate = 0.15
           end
+                      
           if asin != nil then
             update_list << Product.new(user: user, asin: asin, listing_condition: condition, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f, us_price_updated_at: Time.now)
           end
