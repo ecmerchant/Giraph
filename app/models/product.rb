@@ -892,6 +892,10 @@ class Product < ApplicationRecord
         else
           min_price = us_price
         end
+          
+        if min_price * referral_fee_rate < 1.0 then 
+          min_price = min_price + 1.0 - min_price * referral_fee_rate
+        end 
 
         if us_price != 0 then
           list_price = us_price + us_shipping
