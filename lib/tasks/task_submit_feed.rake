@@ -2,10 +2,6 @@ namespace :task_submit_feed do
   desc "改定フィードの実行"
   task :operate, ['user'] => :environment do |task, args|
     user = args[:user]
-    limit = ENV['PER_REVISE_NUM']
-    targets = Product.where(user: user, shipping_type: "default", revised: false)
-    targets = targets.order("calc_updated_at DESC").limit(limit)
-    temp = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-    Product.new.submit_feed(user, temp)
+    Product.new.submit_feed(user)
   end
 end
