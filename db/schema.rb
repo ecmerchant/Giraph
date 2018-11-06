@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181103010216) do
+ActiveRecord::Schema.define(version: 20181106164450) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -41,6 +41,8 @@ ActiveRecord::Schema.define(version: 20181103010216) do
     t.integer  "handling_time"
     t.string   "feed_submission_id"
     t.datetime "feed_submit_at"
+    t.datetime "feed_updated_at"
+    t.text     "feed_status"
   end
 
   create_table "feeds", force: :cascade do |t|

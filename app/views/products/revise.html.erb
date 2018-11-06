@@ -6,6 +6,9 @@
       <%= link_to "改定結果の確認", { :controller => "products", :action => "result" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <br><br>
       <h5>フィードID：<%= @account.feed_submission_id %></h5>
+      <h5>改定実行日時：<%= @account.feed_submit_at %></h5>
+      <h5>結果の処理状況：<%= @account.feed_status %></h5>
+      <br>
       <h5>エラーとなった改定結果</h5>
       <%= paginate @products, :param_name => 'error_page' %>
       <table class="table table-striped table-hover table-bordered table-headerfixed ellipsis tablesorter" id="feed_table">

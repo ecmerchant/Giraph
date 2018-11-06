@@ -1083,7 +1083,8 @@ class Product < ApplicationRecord
 
       account.update(
         feed_submission_id: submissionId.to_s,
-        feed_submit_at: DateTime.now
+        feed_submit_at: DateTime.now,
+        feed_status: "改定実行中"
       )
 
       GetFeedResultJob.set(queue: :feed_result).perform_later(user, submissionId)
