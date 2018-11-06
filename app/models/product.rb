@@ -69,7 +69,7 @@ class Product < ApplicationRecord
       Retryable.retryable(tries: 5, sleep: 2.0) do
         time_counter2 = Time.now.strftime('%s%L').to_i
         diff_time = time_counter2 - time_counter1
-        while diff_time < 6000.0 do
+        while diff_time < 600.0 do
           sleep(0.02)
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
