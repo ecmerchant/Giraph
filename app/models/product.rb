@@ -961,7 +961,7 @@ class Product < ApplicationRecord
       end
       Product.import asin_list, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:asin, :us_listing_price, :profit, :minimum_listing_price, :max_roi, :roi, :calc_ex_rate, :delivery_fee, :payoneer_fee, :exchange_rate, :shipping_type, :listing_condition, :calc_updated_at]}
       asin_list = nil
-      if counter > PER_NOTICE - 1 then
+      if counter > (PER_NOTICE * 5 - 1) then
         t = Time.now
         strTime = t.strftime("%Y年%m月%d日 %H時%M分")
         msg = "価格計算開始\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件計算済み"
