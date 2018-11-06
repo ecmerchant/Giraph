@@ -141,7 +141,9 @@ class Product < ApplicationRecord
           end
         end
         if asin != nil then
-          update_list << Product.new(user: user, asin: asin, listing_condition: condition, jp_title: title, size_length: size_Length, size_width: size_Width, size_height: size_Height, size_weight: size_Weight, listing_shipping: shipping_cost, shipping_weight: package_weight, info_updated_at: Time.now)
+          if tasins.include?(asin) then
+            update_list << Product.new(user: user, asin: asin, listing_condition: condition, jp_title: title, size_length: size_Length, size_width: size_Width, size_height: size_Height, size_weight: size_Weight, listing_shipping: shipping_cost, shipping_weight: package_weight, info_updated_at: Time.now)
+          end
         end
         counter += 1
         total_counter += 1
@@ -355,7 +357,9 @@ class Product < ApplicationRecord
         cost = lowestprice.to_f - lowestpoint.to_f
 
         if asin != nil then
-          update_list << Product.new(user: user, asin: asin, listing_condition: condition, shipping_type: "default", jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock, jp_price_updated_at: Time.now)
+          if tasins.include?(asin) then
+            update_list << Product.new(user: user, asin: asin, listing_condition: condition, shipping_type: "default", jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock, jp_price_updated_at: Time.now)
+          end
         end
         counter += 1
         total_counter += 1
@@ -549,7 +553,9 @@ class Product < ApplicationRecord
         end
 
         if asin != nil then
-          update_list << Product.new(user: user, asin: asin, listing_condition: condition, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f, us_price_updated_at: Time.now)
+          if tasins.include?(asin) then
+            update_list << Product.new(user: user, asin: asin, listing_condition: condition, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f, us_price_updated_at: Time.now)
+          end
         end
         counter += 1
         total_counter += 1
@@ -627,9 +633,11 @@ class Product < ApplicationRecord
           if price.to_f == 0 then
             rate = 0.15
           end
-                      
+
           if asin != nil then
-            update_list << Product.new(user: user, asin: asin, listing_condition: condition, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f, us_price_updated_at: Time.now)
+            if tasins.include?(asin) then
+              update_list << Product.new(user: user, asin: asin, listing_condition: condition, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f, us_price_updated_at: Time.now)
+            end 
           end
         end
         Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:referral_fee, :referral_fee_rate, :variable_closing_fee, :us_price_updated_at]}
@@ -884,7 +892,7 @@ class Product < ApplicationRecord
         shipping = temp[6].to_f
         referral_fee_rate = temp[7].to_f
         sku = temp[8]
-        
+
         us_sell_fee = 0.0
 
         if (1.0 - referral_fee_rate) != 0 then
@@ -892,10 +900,10 @@ class Product < ApplicationRecord
         else
           min_price = us_price
         end
-          
-        if min_price * referral_fee_rate < 1.0 then 
+
+        if min_price * referral_fee_rate < 1.0 then
           min_price = min_price + 1.0 - min_price * referral_fee_rate
-        end 
+        end
 
         if us_price != 0 then
           list_price = us_price + us_shipping
@@ -905,7 +913,7 @@ class Product < ApplicationRecord
           us_sell_fee = list_price * referral_fee_rate
           if us_sell_fee < 1.0 then
             us_sell_fee = 1.0
-          end 
+          end
           profit = (list_price - us_sell_fee - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
           profit = profit.round(0)
         else
@@ -915,13 +923,13 @@ class Product < ApplicationRecord
           us_sell_fee = list_price * referral_fee_rate
           if us_sell_fee < 1.0 then
             us_sell_fee = 1.0
-          end 
+          end
         end
 
         roi = profit / (cost + shipping + delivery_fee_default + (us_sell_fee + variable_closing_fee) * calc_ex_rate).round(1)
         roi = roi * 100.0
         roi = roi.round(1)
-            
+
         if cost != 0 then
           list_price = list_price.round(2)
         else
@@ -931,6 +939,12 @@ class Product < ApplicationRecord
 
         #skuで判断
         if sku.include?("_F_") then
+          shipping_type = "amazon"
+        else
+          shipping_type = "default"
+        end
+
+        if sku.include?("fba") then
           shipping_type = "amazon"
         else
           shipping_type = "default"
@@ -979,17 +993,17 @@ class Product < ApplicationRecord
     skey = account.us_secret_key1
     awskey = account.us_aws_access_key_id1
     handling_time = account.handling_time
-    
+
     Product.new.calc_profit(user)
-    
+
     limit = ENV['PER_REVISE_NUM'].to_i
-    
-    if limit == 0 then 
-      limit = 20000
-    end 
-    
+
+    if limit == 0 then
+      limit = 200
+    end
+
     targets = Product.where(user: user, shipping_type: "default", revised: false)
-     
+
     if targets != nil then
 
       targets = targets.order("calc_updated_at DESC").limit(limit)
@@ -1043,6 +1057,8 @@ class Product < ApplicationRecord
             if price != "" then
               if price != 0 then
                 buf = [sku, price, 0.1, price, quantity, htime, fulfillment_channel]
+              else
+                buf = [sku, "", "", "", 0, htime, fulfillment_channel]
               end
             else
               buf = [sku, "", "", "", 0, htime, fulfillment_channel]
@@ -1080,16 +1096,15 @@ class Product < ApplicationRecord
         account.cw_api_token,
         account.cw_room_id
       )
-    else 
+    else
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-      submissionId = account.feed_submission_id
-      msg = "=========================\n価格改定終了（未改定商品なし）\n終了時刻：" + strTime + "\nフィードID：" + submissionId.to_s + "\n========================="
+      msg = "=========================\n価格改定終了（未改定商品なし）\n終了時刻：" + strTime + "\n========================="
       account.msend(
         msg,
         account.cw_api_token,
         account.cw_room_id
       )
-    end 
+    end
   end
 end
