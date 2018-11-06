@@ -61,111 +61,114 @@ class Product < ApplicationRecord
     time_counter1 = Time.now.strftime('%s%L').to_i
     counter = 0
     total_counter = 0
-    asins.each_slice(5) do |tasins|
-      update_list = Array.new
-      response = nil
-      time_counter2 = nil
-      diff_time = nil
-      Retryable.retryable(tries: 5, sleep: 2.0) do
-        time_counter2 = Time.now.strftime('%s%L').to_i
-        diff_time = time_counter2 - time_counter1
-        while diff_time < 600.0 do
-          sleep(0.02)
+    
+    if tproducts != nil then    
+      asins.each_slice(5) do |tasins|
+        update_list = Array.new
+        response = nil
+        time_counter2 = nil
+        diff_time = nil
+        Retryable.retryable(tries: 5, sleep: 2.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
+          while diff_time < 600.0 do
+            sleep(0.02)
+            time_counter2 = Time.now.strftime('%s%L').to_i
+            diff_time = time_counter2 - time_counter1
+          end
+          response = client.get_matching_product_for_id(mp, "ASIN", tasins)
         end
-        response = client.get_matching_product_for_id(mp, "ASIN", tasins)
-      end
-      time_counter1 = Time.now.strftime('%s%L').to_i
+        time_counter1 = Time.now.strftime('%s%L').to_i
 
-      parser = response.parse
-      parser.each do |product|
-        if product.class == Hash then
-          asin = product.dig('Products', 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          buf = product.dig('Products', 'Product', 'AttributeSets', 'ItemAttributes')
-          if buf != nil then
-            title = buf.dig("Title")
-            size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
-            size_Length = buf.dig("PackageDimensions", "Length", "__content__").to_f * 2.54
-            size_Width = buf.dig("PackageDimensions", "Width", "__content__").to_f * 2.54
-            size_Weight = buf.dig("PackageDimensions", "Weight", "__content__").to_f * 0.4536
+        parser = response.parse
+        parser.each do |product|
+          if product.class == Hash then
+            asin = product.dig('Products', 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
+            buf = product.dig('Products', 'Product', 'AttributeSets', 'ItemAttributes')
+            if buf != nil then
+              title = buf.dig("Title")
+              size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
+              size_Length = buf.dig("PackageDimensions", "Length", "__content__").to_f * 2.54
+              size_Width = buf.dig("PackageDimensions", "Width", "__content__").to_f * 2.54
+              size_Weight = buf.dig("PackageDimensions", "Weight", "__content__").to_f * 0.4536
 
-            size_Height = size_Height.round(2)
-            size_Length = size_Length.round(2)
-            size_Width = size_Width.round(2)
-            size_Weight = size_Weight.round(2)
+              size_Height = size_Height.round(2)
+              size_Length = size_Length.round(2)
+              size_Width = size_Width.round(2)
+              size_Weight = size_Weight.round(2)
+            else
+              title = "データなし"
+              size_Height = 0
+              size_Length = 0
+              size_Width = 0
+              size_Weight = 0
+              shipping_cost = 0
+            end
           else
-            title = "データなし"
-            size_Height = 0
-            size_Length = 0
-            size_Width = 0
-            size_Weight = 0
-            shipping_cost = 0
-          end
-        else
-          asin = product.dig(1, 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          buf = product.dig(1, 'Product', 'AttributeSets', 'ItemAttributes')
-          if buf != nil then
-            size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
-            size_Length = buf.dig("PackageDimensions", "Length", "__content__").to_f * 2.54
-            size_Width = buf.dig("PackageDimensions", "Width", "__content__").to_f * 2.54
-            size_Weight = buf.dig("PackageDimensions", "Weight", "__content__").to_f * 0.4536
+            asin = product.dig(1, 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
+            buf = product.dig(1, 'Product', 'AttributeSets', 'ItemAttributes')
+            if buf != nil then
+              size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
+              size_Length = buf.dig("PackageDimensions", "Length", "__content__").to_f * 2.54
+              size_Width = buf.dig("PackageDimensions", "Width", "__content__").to_f * 2.54
+              size_Weight = buf.dig("PackageDimensions", "Weight", "__content__").to_f * 0.4536
 
-            size_Height = size_Height.round(2)
-            size_Length = size_Length.round(2)
-            size_Width = size_Width.round(2)
-            size_Weight = size_Weight.round(2)
+              size_Height = size_Height.round(2)
+              size_Length = size_Length.round(2)
+              size_Width = size_Width.round(2)
+              size_Weight = size_Weight.round(2)
+            else
+              size_Height = 0
+              size_Length = 0
+              size_Width = 0
+              size_Weight = 0
+            end
+          end
+
+          total_size = size_Height + size_Length + size_Width
+          max_size = [size_Height, size_Length, size_Width].max
+
+          if total_size > 80 || max_size > 50 then
+            shipping_type = "EMS送料表"
           else
-            size_Height = 0
-            size_Length = 0
-            size_Width = 0
-            size_Weight = 0
+            shipping_type = "送料表A"
           end
+
+          t_table = shipping_table[shipping_type]
+          shipping_cost = 0
+          t_table.each do |row|
+            if size_Weight + package_weight < row[0] then
+              shipping_cost = row[1]
+              break
+            end
+          end
+          if asin != nil then
+            if tasins.include?(asin) then
+              update_list << Product.new(user: user, asin: asin, listing_condition: condition, jp_title: title, size_length: size_Length, size_width: size_Width, size_height: size_Height, size_weight: size_Weight, listing_shipping: shipping_cost, shipping_weight: package_weight, info_updated_at: Time.now)
+            end
+          end
+          counter += 1
+          total_counter += 1
         end
 
-        total_size = size_Height + size_Length + size_Width
-        max_size = [size_Height, size_Length, size_Width].max
+        Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_title, :size_length, :size_width, :size_height, :size_weight, :listing_shipping, :shipping_weight, :info_updated_at]}
+        update_list = nil
 
-        if total_size > 80 || max_size > 50 then
-          shipping_type = "EMS送料表"
-        else
-          shipping_type = "送料表A"
+        if counter > PER_NOTICE - 1 then
+          t = Time.now
+          strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+          msg = "商品情報取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+          account.msend(
+            msg,
+            account.cw_api_token,
+            account.cw_room_id
+          )
+          counter = 0
         end
-
-        t_table = shipping_table[shipping_type]
-        shipping_cost = 0
-        t_table.each do |row|
-          if size_Weight + package_weight < row[0] then
-            shipping_cost = row[1]
-            break
-          end
-        end
-        if asin != nil then
-          if tasins.include?(asin) then
-            update_list << Product.new(user: user, asin: asin, listing_condition: condition, jp_title: title, size_length: size_Length, size_width: size_Width, size_height: size_Height, size_weight: size_Weight, listing_shipping: shipping_cost, shipping_weight: package_weight, info_updated_at: Time.now)
-          end
-        end
-        counter += 1
-        total_counter += 1
+        logger.debug("==== JP_INFO: No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
       end
-
-      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_title, :size_length, :size_width, :size_height, :size_weight, :listing_shipping, :shipping_weight, :info_updated_at]}
-      update_list = nil
-
-      if counter > PER_NOTICE - 1 then
-        t = Time.now
-        strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-        msg = "商品情報取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
-        account.msend(
-          msg,
-          account.cw_api_token,
-          account.cw_room_id
-        )
-        counter = 0
-      end
-      logger.debug("==== JP_INFO: No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
-
+            
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n商品情報取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
@@ -219,169 +222,172 @@ class Product < ApplicationRecord
     total_counter = 0
     time_counter1 = Time.now.strftime('%s%L').to_i
 
-    asins.each_slice(10) do |tasins|
-      update_list = Array.new
-      response = nil
-      time_counter2 = nil
-      diff_time = nil
+    if tproducts != nil then  
+      asins.each_slice(10) do |tasins|
+        update_list = Array.new
+        response = nil
+        time_counter2 = nil
+        diff_time = nil
 
-      Retryable.retryable(tries: 5, sleep: 2.0) do
-        time_counter2 = Time.now.strftime('%s%L').to_i
-        diff_time = time_counter2 - time_counter1
-        while diff_time < 1000.0 do
-          sleep(0.02)
+        Retryable.retryable(tries: 5, sleep: 2.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
+          while diff_time < 1000.0 do
+            sleep(0.02)
+            time_counter2 = Time.now.strftime('%s%L').to_i
+            diff_time = time_counter2 - time_counter1
+          end
+          response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
         end
-        response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
-      end
 
-      time_counter1 = Time.now.strftime('%s%L').to_i
+        time_counter1 = Time.now.strftime('%s%L').to_i
 
-      parser = response.parse
-      parser.each do |product|
-        if product.class == Hash then
-          asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
-          lowestprice = 0
-          lowestship = 0
-          lowestpoint = 0
-          jp_stock = false
-          if buf.class == Array then
-            buf.each do |listing|
-              if listing.class == Hash then
-                fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                if fullfillment == "Amazon" then
-                  if condition == "New" then
-                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                    lowestship = listing.dig('Price', 'Shipping','Amount')
-                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                    jp_stock = true
-                    break
-                  else
-                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                    if subcondition == "Mint" || subcondition == "Very Good" then
+        parser = response.parse
+        parser.each do |product|
+          if product.class == Hash then
+            asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
+            buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
+            lowestprice = 0
+            lowestship = 0
+            lowestpoint = 0
+            jp_stock = false
+            if buf.class == Array then
+              buf.each do |listing|
+                if listing.class == Hash then
+                  fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+                  if fullfillment == "Amazon" then
+                    if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
                       lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                       jp_stock = true
                       break
+                    else
+                      subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                      if subcondition == "Mint" || subcondition == "Very Good" then
+                        lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                        lowestship = listing.dig('Price', 'Shipping','Amount')
+                        lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                        jp_stock = true
+                        break
+                      end
                     end
                   end
                 end
               end
-            end
-          elsif buf.class == Hash
-            listing = buf
-            fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-            if fullfillment == "Amazon" then
-              if condition == "New" then
-                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                lowestship = listing.dig('Price', 'Shipping','Amount')
-                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                jp_stock = true
-              else
-                subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                if subcondition == "Mint" || subcondition == "Very Good" then
+            elsif buf.class == Hash
+              listing = buf
+              fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
+              if fullfillment == "Amazon" then
+                if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
                   lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                   jp_stock = true
-                end
-              end
-            end
-          else
-            lowestprice = 0
-            lowestship = 0
-            lowestpoint = 0
-            jp_stock = false
-          end
-        else
-          asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
-          lowestprice = 0
-          lowestship = 0
-          lowestpoint = 0
-          jp_stock = false
-          if buf.class == Array then
-            buf.each do |listing|
-              if listing.class == Hash then
-                fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                if fullfillment == "Amazon" then
-                  if condition == "New" then
+                else
+                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                  if subcondition == "Mint" || subcondition == "Very Good" then
                     lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                     lowestship = listing.dig('Price', 'Shipping','Amount')
                     lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                     jp_stock = true
-                    break
-                  else
-                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                    if subcondition == "Mint" || subcondition == "Very Good" then
+                  end
+                end
+              end
+            else
+              lowestprice = 0
+              lowestship = 0
+              lowestpoint = 0
+              jp_stock = false
+            end
+          else
+            asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
+            buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
+            lowestprice = 0
+            lowestship = 0
+            lowestpoint = 0
+            jp_stock = false
+            if buf.class == Array then
+              buf.each do |listing|
+                if listing.class == Hash then
+                  fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+                  if fullfillment == "Amazon" then
+                    if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
                       lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                       jp_stock = true
                       break
+                    else
+                      subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                      if subcondition == "Mint" || subcondition == "Very Good" then
+                        lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                        lowestship = listing.dig('Price', 'Shipping','Amount')
+                        lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                        jp_stock = true
+                        break
+                      end
                     end
                   end
                 end
               end
-            end
-          elsif buf.class == Hash
-            listing = buf
-            fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-            if fullfillment == "Amazon" then
-              if condition == "New" then
-                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                lowestship = listing.dig('Price', 'Shipping','Amount')
-                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                jp_stock = true
-              else
-                subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                if subcondition == "Mint" || subcondition == "Very Good" then
+            elsif buf.class == Hash
+              listing = buf
+              fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
+              if fullfillment == "Amazon" then
+                if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
                   lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                   jp_stock = true
+                else
+                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                  if subcondition == "Mint" || subcondition == "Very Good" then
+                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                    lowestship = listing.dig('Price', 'Shipping','Amount')
+                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                    jp_stock = true
+                  end
                 end
               end
+            else
+              lowestprice = 0
+              lowestship = 0
+              lowestpoint = 0
+              jp_stock = false
             end
-          else
-            lowestprice = 0
-            lowestship = 0
-            lowestpoint = 0
-            jp_stock = false
           end
+
+          cost = lowestprice.to_f - lowestpoint.to_f
+
+          if asin != nil then
+            if tasins.include?(asin) then
+              update_list << Product.new(user: user, asin: asin, listing_condition: condition, shipping_type: "default", jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock, jp_price_updated_at: Time.now)
+            end
+          end
+          counter += 1
+          total_counter += 1
         end
 
-        cost = lowestprice.to_f - lowestpoint.to_f
 
-        if asin != nil then
-          if tasins.include?(asin) then
-            update_list << Product.new(user: user, asin: asin, listing_condition: condition, shipping_type: "default", jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock, jp_price_updated_at: Time.now)
-          end
+        Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_price, :jp_shipping, :jp_point, :cost_price, :on_sale, :shipping_type, :jp_price_updated_at]}
+        update_list = nil
+
+        if counter > PER_NOTICE - 1 then
+          t = Time.now
+          strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+          msg = "日本アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+          account.msend(
+            msg,
+            account.cw_api_token,
+            account.cw_room_id
+          )
+          counter = 0
         end
-        counter += 1
-        total_counter += 1
+        logger.debug("==== JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
       end
-
-
-      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_price, :jp_shipping, :jp_point, :cost_price, :on_sale, :shipping_type, :jp_price_updated_at]}
-      update_list = nil
-
-      if counter > PER_NOTICE - 1 then
-        t = Time.now
-        strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-        msg = "日本アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
-        account.msend(
-          msg,
-          account.cw_api_token,
-          account.cw_room_id
-        )
-        counter = 0
-      end
-      logger.debug("==== JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
     end
+                
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n日本アマゾン価格取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
@@ -434,229 +440,232 @@ class Product < ApplicationRecord
       aws_secret_access_key: skey
     )
     time_counter1 = Time.now.strftime('%s%L').to_i
-    asins.each_slice(10) do |tasins|
-      requests = []
-      i = 0
-      #最低価格の取得
-      update_list = Array.new
-      response = nil
-      time_counter2 = nil
-      diff_time = nil
+    
+    if tproducts != nil then  
+      asins.each_slice(10) do |tasins|
+        requests = []
+        i = 0
+        #最低価格の取得
+        update_list = Array.new
+        response = nil
+        time_counter2 = nil
+        diff_time = nil
 
-      Retryable.retryable(tries: 5, sleep: 2.0) do
-        time_counter2 = Time.now.strftime('%s%L').to_i
-        diff_time = time_counter2 - time_counter1
-        while diff_time < 1000.0 do
-          sleep(0.02)
+        Retryable.retryable(tries: 5, sleep: 2.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
+          while diff_time < 1000.0 do
+            sleep(0.02)
+            time_counter2 = Time.now.strftime('%s%L').to_i
+            diff_time = time_counter2 - time_counter1
+          end
+          response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
         end
-        response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
-      end
 
-      time_counter1 = Time.now.strftime('%s%L').to_i
+        time_counter1 = Time.now.strftime('%s%L').to_i
 
-      parser = response.parse
-      parser.each do |product|
-        if product.class == Hash then
-          asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
-          lowestprice = 0
-          lowestship = 0
-          lowestpoint = 0
-          if buf.class == Array then
-            buf.each do |listing|
-              if listing.class == Hash then
-                fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                if condition == "New" then
-                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                  lowestship = listing.dig('Price', 'Shipping','Amount')
-                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                  break
-                else
-                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                  if subcondition == "Mint" || subcondition == "Very Good" then
+        parser = response.parse
+        parser.each do |product|
+          if product.class == Hash then
+            asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
+            buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
+            lowestprice = 0
+            lowestship = 0
+            lowestpoint = 0
+            if buf.class == Array then
+              buf.each do |listing|
+                if listing.class == Hash then
+                  fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+                  if condition == "New" then
                     lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                     lowestship = listing.dig('Price', 'Shipping','Amount')
                     lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                     break
+                  else
+                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                    if subcondition == "Mint" || subcondition == "Very Good" then
+                      lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                      lowestship = listing.dig('Price', 'Shipping','Amount')
+                      lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                      break
+                    end
                   end
                 end
               end
-            end
-          elsif buf.class == Hash
-            listing = buf
-            fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-            if condition == "New" then
-              lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-              lowestship = listing.dig('Price', 'Shipping','Amount')
-              lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-            else
-              subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-              if subcondition == "Mint" || subcondition == "Very Good" then
+            elsif buf.class == Hash
+              listing = buf
+              fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
+              if condition == "New" then
                 lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                 lowestship = listing.dig('Price', 'Shipping','Amount')
                 lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-              end
-            end
-          else
-            lowestprice = 0
-            lowestship = 0
-            lowestpoint = 0
-          end
-        else
-          asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
-          buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
-          lowestprice = 0
-          lowestship = 0
-          lowestpoint = 0
-          if buf.class == Array then
-            buf.each do |listing|
-              if listing.class == Hash then
-                fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                if condition == "New" then
+              else
+                subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                if subcondition == "Mint" || subcondition == "Very Good" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
                   lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                  break
-                else
-                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                  if subcondition == "Mint" || subcondition == "Very Good" then
+                end
+              end
+            else
+              lowestprice = 0
+              lowestship = 0
+              lowestpoint = 0
+            end
+          else
+            asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
+            buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
+            lowestprice = 0
+            lowestship = 0
+            lowestpoint = 0
+            if buf.class == Array then
+              buf.each do |listing|
+                if listing.class == Hash then
+                  fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+                  if condition == "New" then
                     lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                     lowestship = listing.dig('Price', 'Shipping','Amount')
                     lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                     break
+                  else
+                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                    if subcondition == "Mint" || subcondition == "Very Good" then
+                      lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                      lowestship = listing.dig('Price', 'Shipping','Amount')
+                      lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                      break
+                    end
                   end
                 end
               end
-            end
-          elsif buf.class == Hash
-            listing = buf
-            fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-            if condition == "New" then
-              lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-              lowestship = listing.dig('Price', 'Shipping','Amount')
-              lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-            else
-              subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-              if subcondition == "Mint" || subcondition == "Very Good" then
+            elsif buf.class == Hash
+              listing = buf
+              fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
+              if condition == "New" then
                 lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                 lowestship = listing.dig('Price', 'Shipping','Amount')
                 lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+              else
+                subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                if subcondition == "Mint" || subcondition == "Very Good" then
+                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                  lowestship = listing.dig('Price', 'Shipping','Amount')
+                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                end
               end
-            end
-          else
-            lowestprice = 0
-            lowestship = 0
-            lowestpoint = 0
-          end
-        end
-
-        if asin != nil then
-          if tasins.include?(asin) then
-            update_list << Product.new(user: user, asin: asin, listing_condition: condition, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f, us_price_updated_at: Time.now)
-          end
-        end
-        counter += 1
-        total_counter += 1
-        prices = {
-          ListingPrice: {Amount: lowestprice.to_f, CurrencyCode: "USD"}
-        }
-        request = {
-          MarketplaceId: mp,
-          IdType: "ASIN",
-          IdValue: asin,
-          PriceToEstimateFees: prices,
-          Identifier: "req" + i.to_s,
-          IsAmazonFulfilled: true
-        }
-        requests[i] = request
-        i += 1
-      end
-
-      Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:us_price, :us_shipping, :us_point, :us_price_updated_at]}
-      update_list = nil
-
-      #手数料の取得
-      if fee_check == "TRUE" then
-        logger.debug("====== GET FEE ESTIMATE =======")
-        update_list = Array.new
-        response2 = nil
-        Retryable.retryable(tries: 5, sleep: 2.0) do
-          response2 = client.get_my_fees_estimate(requests)
-        end
-        parser2 = response2.parse
-
-        buf = parser2.dig("FeesEstimateResultList", "FeesEstimateResult")
-        j = 0
-        referral_fee = 0
-        variable_closing_fee = 0
-        per_item_fee = 0
-        fba_fees = 0
-        buf.each do |result|
-          tmp = result.dig("FeesEstimateIdentifier")
-          asin = result.dig("FeesEstimateIdentifier", "IdValue")
-          fees = result.dig("FeesEstimate")
-          price = result.dig("FeesEstimateIdentifier", "PriceToEstimateFees", "ListingPrice", "Amount")
-
-          if fees != nil then
-            lists= fees.dig("FeeDetailList", "FeeDetail")
-            checker = 0
-            lists.each do |fee|
-              feetype = fee.dig("FeeType")
-              case feetype
-                when "ReferralFee" then
-                  referral_fee = fee.dig("FinalFee", "Amount")
-                  checker += 1
-                when "VariableClosingFee" then
-                  variable_closing_fee = fee.dig("FinalFee", "Amount")
-                  checker += 1
-                when "PerItemFee" then
-                  per_item_fee = fee.dig("FinalFee", "Amount")
-                when "FBAFees" then
-                  fba_fees = fee.dig("FinalFee", "Amount")
-              end
-              if checker == 2 then break end
-            end
-          end
-
-          if referral_fee.to_f != 0 then
-            if referral_fee.to_f > 1.0 && referral_fee.to_f > price.to_f then
-              rate = (referral_fee.to_f / price.to_f).round(2)
             else
-              rate = 0.15
+              lowestprice = 0
+              lowestship = 0
+              lowestpoint = 0
             end
-          else
-            rate = 0.15
-          end
-
-          if price.to_f == 0 then
-            rate = 0.15
           end
 
           if asin != nil then
             if tasins.include?(asin) then
-              update_list << Product.new(user: user, asin: asin, listing_condition: condition, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f, us_price_updated_at: Time.now)
+              update_list << Product.new(user: user, asin: asin, listing_condition: condition, us_price: lowestprice.to_f, us_shipping: lowestship.to_f, us_point: lowestpoint.to_f, us_price_updated_at: Time.now)
             end
           end
+          counter += 1
+          total_counter += 1
+          prices = {
+            ListingPrice: {Amount: lowestprice.to_f, CurrencyCode: "USD"}
+          }
+          request = {
+            MarketplaceId: mp,
+            IdType: "ASIN",
+            IdValue: asin,
+            PriceToEstimateFees: prices,
+            Identifier: "req" + i.to_s,
+            IsAmazonFulfilled: true
+          }
+          requests[i] = request
+          i += 1
         end
-        Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:referral_fee, :referral_fee_rate, :variable_closing_fee, :us_price_updated_at]}
-        update_list = nil
-      end
-      if counter > PER_NOTICE - 1 then
-        t = Time.now
-        strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-        msg = "米国アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
-        account.msend(
-          msg,
-          account.cw_api_token,
-          account.cw_room_id
-        )
-        counter = 0
-      end
-      logger.debug("==== US_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
-    end
 
+        Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:us_price, :us_shipping, :us_point, :us_price_updated_at]}
+        update_list = nil
+
+        #手数料の取得
+        if fee_check == "TRUE" then
+          logger.debug("====== GET FEE ESTIMATE =======")
+          update_list = Array.new
+          response2 = nil
+          Retryable.retryable(tries: 5, sleep: 2.0) do
+            response2 = client.get_my_fees_estimate(requests)
+          end
+          parser2 = response2.parse
+
+          buf = parser2.dig("FeesEstimateResultList", "FeesEstimateResult")
+          j = 0
+          referral_fee = 0
+          variable_closing_fee = 0
+          per_item_fee = 0
+          fba_fees = 0
+          buf.each do |result|
+            tmp = result.dig("FeesEstimateIdentifier")
+            asin = result.dig("FeesEstimateIdentifier", "IdValue")
+            fees = result.dig("FeesEstimate")
+            price = result.dig("FeesEstimateIdentifier", "PriceToEstimateFees", "ListingPrice", "Amount")
+
+            if fees != nil then
+              lists= fees.dig("FeeDetailList", "FeeDetail")
+              checker = 0
+              lists.each do |fee|
+                feetype = fee.dig("FeeType")
+                case feetype
+                  when "ReferralFee" then
+                    referral_fee = fee.dig("FinalFee", "Amount")
+                    checker += 1
+                  when "VariableClosingFee" then
+                    variable_closing_fee = fee.dig("FinalFee", "Amount")
+                    checker += 1
+                  when "PerItemFee" then
+                    per_item_fee = fee.dig("FinalFee", "Amount")
+                  when "FBAFees" then
+                    fba_fees = fee.dig("FinalFee", "Amount")
+                end
+                if checker == 2 then break end
+              end
+            end
+
+            if referral_fee.to_f != 0 then
+              if referral_fee.to_f > 1.0 && referral_fee.to_f > price.to_f then
+                rate = (referral_fee.to_f / price.to_f).round(2)
+              else
+                rate = 0.15
+              end
+            else
+              rate = 0.15
+            end
+
+            if price.to_f == 0 then
+              rate = 0.15
+            end
+
+            if asin != nil then
+              if tasins.include?(asin) then
+                update_list << Product.new(user: user, asin: asin, listing_condition: condition, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f, us_price_updated_at: Time.now)
+              end
+            end
+          end
+          Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:referral_fee, :referral_fee_rate, :variable_closing_fee, :us_price_updated_at]}
+          update_list = nil
+        end
+        if counter > PER_NOTICE - 1 then
+          t = Time.now
+          strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+          msg = "米国アマゾン価格取得中 (" + condition.to_s + ")\n取得時刻：" + strTime + "\n" + total_counter.to_s + "件取得済み"
+          account.msend(
+            msg,
+            account.cw_api_token,
+            account.cw_room_id
+          )
+          counter = 0
+        end
+        logger.debug("==== US_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
+      end
+    end
+              
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n米国アマゾン価格取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
