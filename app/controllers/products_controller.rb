@@ -33,7 +33,10 @@ class ProductsController < ApplicationController
   def result
     user = current_user.email
     feed_id = Account.find_by(user: user).feed_submission_id
-    GetFeedResultJob.set(queue: :feed_result).perform_later(user, feed_id)
+    #GetFeedResultJob.set(queue: :feed_result).perform_later(user, feed_id)
+
+    Feed.new.get_result(user, feed_id)
+
     redirect_to products_revise_path
   end
 
