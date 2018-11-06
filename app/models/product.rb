@@ -637,7 +637,7 @@ class Product < ApplicationRecord
           if asin != nil then
             if tasins.include?(asin) then
               update_list << Product.new(user: user, asin: asin, listing_condition: condition, referral_fee: referral_fee.to_f, referral_fee_rate: rate, variable_closing_fee: variable_closing_fee.to_f, us_price_updated_at: Time.now)
-            end 
+            end
           end
         end
         Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:referral_fee, :referral_fee_rate, :variable_closing_fee, :us_price_updated_at]}
@@ -999,7 +999,7 @@ class Product < ApplicationRecord
     limit = ENV['PER_REVISE_NUM'].to_i
 
     if limit == 0 then
-      limit = 200
+      limit = 20000
     end
 
     targets = Product.where(user: user, shipping_type: "default", revised: false)

@@ -11,6 +11,7 @@ CSV.generate(bom) do |csv|
     "幅[cm]",
     "高さ[cm]",
     "重量[kg]",
+    "梱包重量[kg]",
     "アメリカ最安値[$]",
     "アメリカ最安値の送料[$]",
     "最大ROI[%]",
@@ -73,6 +74,6 @@ CSV.generate(bom) do |csv|
       csv << result
     end
     pos += range
-    break if pos > range_max    
+    break if pos > range_max
   end
 end
