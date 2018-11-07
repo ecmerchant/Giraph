@@ -835,9 +835,11 @@ class Product < ApplicationRecord
           end
 
           if shipping_type == "default" then
-            dcounter += 1
-            logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
-            asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition, sku_checked: true)
+            if tsku != nil && tasin != nil then
+              dcounter += 1
+              logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
+              asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition, sku_checked: true)
+            end
           end
         end
 
