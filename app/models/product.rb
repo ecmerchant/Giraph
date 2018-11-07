@@ -850,7 +850,7 @@ class Product < ApplicationRecord
             
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-    msg = "=========================\n出品レポート取得終了\nレポートID：" + genid.to_s + "\n終了時刻：" + strTime + "\n========================="
+    msg = "=========================\n出品レポート取得終了\nレポートID：" + genid.to_s + "\n出品レポート商品数：" + counter.to_s + "\n終了時刻：" + strTime + "\n========================="
     account.msend(
       msg,
       account.cw_api_token,
