@@ -1062,19 +1062,18 @@ class Product < ApplicationRecord
     end
 
     targets = Product.where(user: user, shipping_type: "default", revised: false)
-
+    
     if targets != nil then
-
-      targets = targets.order("calc_updated_at DESC").limit(limit)
-      data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-
-      client = MWS.feeds(
-        marketplace: mp,
-        merchant_id: sid,
-        aws_access_key_id: awskey,
-        aws_secret_access_key: skey
+      t = Time.now
+      strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+      msg = "=========================\n価格改定改定（未改定商品なし）\n開始時刻：" + strTime + "\n========================="
+      account.msend(
+        msg,
+        account.cw_api_token,
+        account.cw_room_id
       )
-
+      targets = Product.where(user: user, shipping_type: "default")
+    else
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
       msg = "=========================\n価格改定開始\n開始時刻：" + strTime + "\n========================="
@@ -1083,88 +1082,91 @@ class Product < ApplicationRecord
         account.cw_api_token,
         account.cw_room_id
       )
+    end
+      
+    targets = targets.order("calc_updated_at DESC").limit(limit)
+    data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
 
-      stream = ""
-      File.open('app/others/Flat_File_PriceInventory_us.txt') do |file|
-        file.each_line do |row|
-          stream = stream + row
-        end
+    client = MWS.feeds(
+      marketplace: mp,
+      merchant_id: sid,
+      aws_access_key_id: awskey,
+      aws_secret_access_key: skey
+    )
+
+    
+
+    stream = ""
+    File.open('app/others/Flat_File_PriceInventory_us.txt') do |file|
+      file.each_line do |row|
+        stream = stream + row
       end
-      st = Date.today.strftime("%Y-%m-%d") + "T00:00:00+09:00"
+    end
+    st = Date.today.strftime("%Y-%m-%d") + "T00:00:00+09:00"
 
-      temp = Feed.where(user: user)
-      if temp != nil then
-        temp.delete_all
-      end
-      htime = handling_time
+    temp = Feed.where(user: user)
+    if temp != nil then
+      temp.delete_all
+    end
+    htime = handling_time
 
-      data.each_slice(1000) do |tdata|
-        uplist = Array.new
-        skulist = Array.new
-        tdata.each do |row|
-          logger.debug(row)
-          sku = row[0]
-          if sku != nil || sku != "" then
-            if row[2] == true then
-              quantity = 1
-              price = row[1]
-            else
-              quantity = 0
-              price = ""
-            end
-            fulfillment_channel = row[4]
-            if price != "" then
-              if price != 0 then
-                buf = [sku, price, 0.1, price, quantity, htime, fulfillment_channel]
-              else
-                buf = [sku, "", "", "", 0, htime, fulfillment_channel]
-              end
+    data.each_slice(1000) do |tdata|
+      uplist = Array.new
+      skulist = Array.new
+      tdata.each do |row|
+        logger.debug(row)
+        sku = row[0]
+        if sku != nil || sku != "" then
+          if row[2] == true then
+            quantity = 1
+            price = row[1]
+          else
+            quantity = 0
+            price = ""
+          end
+          fulfillment_channel = row[4]
+          if price != "" then
+            if price != 0 then
+              buf = [sku, price, 0.1, price, quantity, htime, fulfillment_channel]
             else
               buf = [sku, "", "", "", 0, htime, fulfillment_channel]
             end
-            part = buf.join("\t")
-            stream = stream + part + "\n"
-            uplist << Feed.new(user: user.to_s, sku: sku.to_s, price: price.to_s, quantity: quantity.to_s, handling_time: htime.to_s, fulfillment_channel: fulfillment_channel.to_s)
-            skulist << Product.new(user: user, sku: sku.to_s, revised: true)
+          else
+            buf = [sku, "", "", "", 0, htime, fulfillment_channel]
           end
+          part = buf.join("\t")
+          stream = stream + part + "\n"
+          uplist << Feed.new(user: user.to_s, sku: sku.to_s, price: price.to_s, quantity: quantity.to_s, handling_time: htime.to_s, fulfillment_channel: fulfillment_channel.to_s)
+          skulist << Product.new(user: user, sku: sku.to_s, revised: true)
         end
-        Feed.import uplist
-        Product.import skulist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
-        uplist = nil
-        skulist = nil
-        tdata = nil
       end
-      logger.debug(stream)
-      feed_type = "_POST_FLAT_FILE_PRICEANDQUANTITYONLY_UPDATE_DATA_"
-      parser = client.submit_feed(stream, feed_type)
-      doc = Nokogiri::XML(parser.body)
-      submissionId = doc.xpath(".//mws:FeedSubmissionId", {"mws"=>"http://mws.amazonaws.com/doc/2009-01-01/"}).text
-
-      account.update(
-        feed_submission_id: submissionId.to_s,
-        feed_submit_at: DateTime.now,
-        feed_status: "改定実行中"
-      )
-
-      GetFeedResultJob.set(queue: :feed_result).perform_later(user, submissionId)
-
-      t = Time.now
-      strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-      msg = "=========================\n価格改定終了\n終了時刻：" + strTime + "\nフィードID：" + submissionId.to_s + "\n========================="
-      account.msend(
-        msg,
-        account.cw_api_token,
-        account.cw_room_id
-      )
-    else
-      t = Time.now
-      strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-      msg = "=========================\n価格改定終了（未改定商品なし）\n終了時刻：" + strTime + "\n========================="
-      account.msend(
-        msg,
-        account.cw_api_token,
-        account.cw_room_id
-      )
+      Feed.import uplist
+      Product.import skulist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
+      uplist = nil
+      skulist = nil
+      tdata = nil
     end
+    logger.debug(stream)
+    feed_type = "_POST_FLAT_FILE_PRICEANDQUANTITYONLY_UPDATE_DATA_"
+    parser = client.submit_feed(stream, feed_type)
+    doc = Nokogiri::XML(parser.body)
+    submissionId = doc.xpath(".//mws:FeedSubmissionId", {"mws"=>"http://mws.amazonaws.com/doc/2009-01-01/"}).text
+
+    account.update(
+      feed_submission_id: submissionId.to_s,
+      feed_submit_at: DateTime.now,
+      feed_status: "改定実行中"
+    )
+
+    GetFeedResultJob.set(queue: :feed_result).perform_later(user, submissionId)
+
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n価格改定終了\n終了時刻：" + strTime + "\nフィードID：" + submissionId.to_s + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
   end
 end
