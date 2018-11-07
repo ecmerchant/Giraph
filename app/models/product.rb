@@ -729,7 +729,8 @@ class Product < ApplicationRecord
     skey = account.us_secret_key1
     awskey = account.us_aws_access_key_id1
     products = Product.where(user: user)
-    report_type = "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_"
+    #report_type = "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_"
+    report_type = "_GET_MERCHANT_LISTINGS_ALL_DATA_"
       
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -802,22 +803,30 @@ class Product < ApplicationRecord
       parser.each_slice(per_num) do |rows|
         asin_list = Array.new
         rows.each do |row|
-          tsku = row[0].to_s
-          tasin = row[1].to_s
-          quantity = row[3].to_i
+          logger.debug(row)
+          tsku = row[3].to_s
+          tasin = row[16].to_s
+          status = row[28]
+          channel = row[26]
           counter += 1
-          if quantity == 0 then
+          if status == "Inactive" then
             listing = false
           else
             listing = true
           end
 
           #skuで判断
-          if tsku.include?("_F_") then
-            shipping_type = "amazon"
-          else
+          if channel == "DEFAULT" then
             shipping_type = "default"
-          end
+          else 
+            shipping_type = "amazon"
+          end 
+            
+          #if tsku.include?("_F_") then
+          #  shipping_type = "amazon"
+          #else
+          #  shipping_type = "default"
+          #end
 
           if tsku.include?("used") then
             listing_condition = "Used"
