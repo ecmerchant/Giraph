@@ -263,9 +263,9 @@ class Product < ApplicationRecord
               logger.debug(domestic.class)
               logger.debug(domestic)
               logger.debug(shipping.class)
-              logger.debug(shipping)
+              logger.debug(shipping.Max)
               logger.debug("=======================")
-                  if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
+                  if fullfillment == "Amazon" && domestic == "True" && shipping.Max == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
@@ -296,9 +296,9 @@ class Product < ApplicationRecord
               logger.debug(domestic.class)
               logger.debug(domestic)
               logger.debug(shipping.class)
-              logger.debug(shipping)
+              logger.debug(shipping.Max)
               logger.debug("=======================")
-              if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
+              if fullfillment == "Amazon" && domestic == "True" && shipping.Max == "0-2 days" then
                 if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
@@ -339,9 +339,9 @@ class Product < ApplicationRecord
               logger.debug(domestic.class)
               logger.debug(domestic)
               logger.debug(shipping.class)
-              logger.debug(shipping)
+              logger.debug(shipping.Max)
               logger.debug("=======================")
-                  if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
+                  if fullfillment == "Amazon" && domestic == "True" && shipping.Max == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
@@ -372,9 +372,9 @@ logger.debug("=======================")
               logger.debug(domestic.class)
               logger.debug(domestic)
               logger.debug(shipping.class)
-              logger.debug(shipping)
+              logger.debug(shipping.Max)
               logger.debug("=======================")
-              if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
+              if fullfillment == "Amazon" && domestic == "True" && shipping.Max == "0-2 days" then
                 if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
