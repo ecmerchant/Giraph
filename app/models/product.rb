@@ -255,7 +255,10 @@ class Product < ApplicationRecord
               buf.each do |listing|
                 if listing.class == Hash then
                   fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                  if fullfillment == "Amazon" then
+                  domestic = listing.dig('Qualifiers', 'ShipsDomestically')
+                  shipping = listing.dig('Qualifiers', 'ShippingTime')
+                  
+                  if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
@@ -277,8 +280,11 @@ class Product < ApplicationRecord
               end
             elsif buf.class == Hash
               listing = buf
-              fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-              if fullfillment == "Amazon" then
+              fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+              domestic = listing.dig('Qualifiers', 'ShipsDomestically')
+              shipping = listing.dig('Qualifiers', 'ShippingTime')
+
+              if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
                 if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
@@ -311,7 +317,10 @@ class Product < ApplicationRecord
               buf.each do |listing|
                 if listing.class == Hash then
                   fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                  if fullfillment == "Amazon" then
+                  domestic = listing.dig('Qualifiers', 'ShipsDomestically')
+                  shipping = listing.dig('Qualifiers', 'ShippingTime')
+                  
+                  if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
@@ -333,8 +342,11 @@ class Product < ApplicationRecord
               end
             elsif buf.class == Hash
               listing = buf
-              fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-              if fullfillment == "Amazon" then
+              fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+              domestic = listing.dig('Qualifiers', 'ShipsDomestically')
+              shipping = listing.dig('Qualifiers', 'ShippingTime')
+
+              if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
                 if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
