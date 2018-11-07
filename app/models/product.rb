@@ -724,12 +724,21 @@ class Product < ApplicationRecord
     end
     #mp = "A1VC38T7YXB528"
     mp = "ATVPDKIKX0DER"  #アメリカアマゾン
-    temp = Account.find_by(user: user)
-    sid = temp.us_seller_id1
-    skey = temp.us_secret_key1
-    awskey = temp.us_aws_access_key_id1
+    account = Account.find_by(user: user)
+    sid = account.us_seller_id1
+    skey = account.us_secret_key1
+    awskey = account.us_aws_access_key_id1
     products = Product.where(user: user)
     report_type = "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_"
+      
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n出品レポート取得開始\n開始時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
 
     client = MWS.reports(
       marketplace: mp,
@@ -749,6 +758,7 @@ class Product < ApplicationRecord
     logger.debug(reqid)
 
     once = false
+    dcounter = 0
 
     while process != "_DONE_" && process != "_DONE_NO_DATA_"
       response = client.get_report_request_list(mws_options)
@@ -816,6 +826,7 @@ class Product < ApplicationRecord
           end
 
           if shipping_type == "default" then
+            dcounter += 1
             logger.debug("No." + counter.to_s + ", SKU: " + tsku.to_s + ", ASIN: " + tasin.to_s)
             asin_list << Product.new(user: user, sku: tsku, asin: tasin, listing: listing , shipping_type: shipping_type, listing_condition: listing_condition, sku_checked: true)
           end
@@ -836,6 +847,16 @@ class Product < ApplicationRecord
     end
     logger.debug(counter.to_s)
     logger.debug("===== End Report =====")
+            
+    t = Time.now
+    strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+    msg = "=========================\n出品レポート取得終了\nレポートID：" + genid.to_s + "\n終了時刻：" + strTime + "\n========================="
+    account.msend(
+      msg,
+      account.cw_api_token,
+      account.cw_room_id
+    )
+            
   end
 
 
@@ -1002,9 +1023,12 @@ class Product < ApplicationRecord
     skey = account.us_secret_key1
     awskey = account.us_aws_access_key_id1
     handling_time = account.handling_time
-
-    Product.new.calc_profit(user)
-
+    calc_on = ENV['CALC_ON']
+    
+    if calc_on = "TRUE" then
+      Product.new.calc_profit(user)
+    end 
+      
     limit = ENV['PER_REVISE_NUM'].to_i
 
     if limit == 0 then
