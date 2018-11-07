@@ -834,15 +834,13 @@ class Product < ApplicationRecord
           if tsku.include?("_F_") then
             shipping_type = "amazon"
           else
-            shipping_type = "default"
+            if tsku.include?("fba") then
+              shipping_type = "amazon"
+            else
+              shipping_type = "default"
+            end
           end
-            
-          if tsku.include?("fba") then
-            shipping_type = "amazon"
-          else
-            shipping_type = "default"
-          end
-
+          
           if tsku.include?("used") then
             listing_condition = "Used"
           else
