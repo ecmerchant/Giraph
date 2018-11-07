@@ -12,8 +12,7 @@ class Product < ApplicationRecord
     logger.debug ("==== START JP INFO ======")
 
     tproducts = Product.where(user:user, listing_condition: condition)
-    tproducts.order("info_updated_at ASC")
-    asins = tproducts.group(:asin).pluck(:asin)
+
     buffer = ShippingCost.where(user: user)
 
     t_a = buffer.where(name: "送料表A").order(weight: "ASC")
@@ -61,8 +60,10 @@ class Product < ApplicationRecord
     time_counter1 = Time.now.strftime('%s%L').to_i
     counter = 0
     total_counter = 0
-    
-    if tproducts != nil then    
+
+    if tproducts != nil then
+      tproducts.order("info_updated_at ASC NULLS FIRST")
+      asins = tproducts.group(:asin).pluck(:asin)
       asins.each_slice(5) do |tasins|
         update_list = Array.new
         response = nil
@@ -71,14 +72,14 @@ class Product < ApplicationRecord
         Retryable.retryable(tries: 5, sleep: 2.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
-          while diff_time < 600.0 do
+          while diff_time < 1005.0 do
             sleep(0.02)
             time_counter2 = Time.now.strftime('%s%L').to_i
             diff_time = time_counter2 - time_counter1
           end
+          time_counter1 = Time.now.strftime('%s%L').to_i
           response = client.get_matching_product_for_id(mp, "ASIN", tasins)
         end
-        time_counter1 = Time.now.strftime('%s%L').to_i
 
         parser = response.parse
         parser.each do |product|
@@ -168,7 +169,7 @@ class Product < ApplicationRecord
         logger.debug("==== JP_INFO: No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
       end
     end
-            
+
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n商品情報取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
@@ -191,10 +192,6 @@ class Product < ApplicationRecord
   #日本アマゾンFBA価格の監視
   def check_amazon_jp_price(user, condition)
     logger.debug ("==== START JP CHECK ======")
-    tproducts = Product.where(user: user, listing_condition: condition, shipping_type: "default")
-    tproducts.order("jp_price_updated_at ASC")
-
-    asins = tproducts.group(:asin).pluck(:asin)
 
     mp = "A1VC38T7YXB528"
     account = Account.find_by(user: user)
@@ -221,8 +218,12 @@ class Product < ApplicationRecord
     counter = 0
     total_counter = 0
     time_counter1 = Time.now.strftime('%s%L').to_i
+    tproducts = Product.where(user: user, listing_condition: condition, shipping_type: "default")
 
-    if tproducts != nil then  
+    if tproducts != nil then
+
+      tproducts.order("jp_price_updated_at ASC NULLS FIRST")
+      asins = tproducts.group(:asin).pluck(:asin)
       asins.each_slice(10) do |tasins|
         update_list = Array.new
         response = nil
@@ -232,15 +233,14 @@ class Product < ApplicationRecord
         Retryable.retryable(tries: 5, sleep: 2.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
-          while diff_time < 1000.0 do
+          while diff_time < 1005.0 do
             sleep(0.02)
             time_counter2 = Time.now.strftime('%s%L').to_i
             diff_time = time_counter2 - time_counter1
           end
+          time_counter1 = Time.now.strftime('%s%L').to_i
           response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
         end
-
-        time_counter1 = Time.now.strftime('%s%L').to_i
 
         parser = response.parse
         parser.each do |product|
@@ -257,7 +257,7 @@ class Product < ApplicationRecord
                   fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                   domestic = listing.dig('Qualifiers', 'ShipsDomestically')
                   shipping = listing.dig('Qualifiers', 'ShippingTime')
-                  
+
                   if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
@@ -319,7 +319,7 @@ class Product < ApplicationRecord
                   fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                   domestic = listing.dig('Qualifiers', 'ShipsDomestically')
                   shipping = listing.dig('Qualifiers', 'ShippingTime')
-                  
+
                   if fullfillment == "Amazon" && domestic == "True" && shipping == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
@@ -399,7 +399,7 @@ class Product < ApplicationRecord
         logger.debug("==== JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
       end
     end
-                
+
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n日本アマゾン価格取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
@@ -423,9 +423,7 @@ class Product < ApplicationRecord
   #アメリカアマゾン最低価格の監視
   def check_amazon_us_price(user, condition, fee_check)
     logger.debug ("==== START US PRICE CHECK ======")
-    tproducts = Product.where(user:user, listing_condition: condition)
-    tproducts.order("us_price_updated_at ASC")
-    asins = tproducts.group(:asin).pluck(:asin)
+    tproducts = Product.where(user: user, listing_condition: condition)
 
     mp = "ATVPDKIKX0DER" #アマゾンアメリカ
     account = Account.find_by(user: user)
@@ -452,8 +450,11 @@ class Product < ApplicationRecord
       aws_secret_access_key: skey
     )
     time_counter1 = Time.now.strftime('%s%L').to_i
-    
-    if tproducts != nil then  
+
+    if tproducts != nil then
+      tproducts.order("us_price_updated_at ASC NULLS FIRST")
+      asins = tproducts.group(:asin).pluck(:asin)
+
       asins.each_slice(10) do |tasins|
         requests = []
         i = 0
@@ -466,15 +467,14 @@ class Product < ApplicationRecord
         Retryable.retryable(tries: 5, sleep: 2.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
-          while diff_time < 1000.0 do
+          while diff_time < 1005.0 do
             sleep(0.02)
             time_counter2 = Time.now.strftime('%s%L').to_i
             diff_time = time_counter2 - time_counter1
           end
+          time_counter1 = Time.now.strftime('%s%L').to_i
           response = client.get_lowest_offer_listings_for_asin(mp, tasins,{item_condition: condition})
         end
-
-        time_counter1 = Time.now.strftime('%s%L').to_i
 
         parser = response.parse
         parser.each do |product|
@@ -677,7 +677,7 @@ class Product < ApplicationRecord
         logger.debug("==== US_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
       end
     end
-              
+
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n米国アマゾン価格取得終了 (" + condition.to_s + ")\n終了時刻：" + strTime + "\n========================="
@@ -743,7 +743,7 @@ class Product < ApplicationRecord
     products = Product.where(user: user)
     report_type = "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_"
     #report_type = "_GET_MERCHANT_LISTINGS_ALL_DATA_"
-      
+
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n出品レポート取得開始\n開始時刻：" + strTime + "\n========================="
@@ -822,26 +822,26 @@ class Product < ApplicationRecord
           #status = row[28]
           #channel = row[26]
           counter += 1
-          
+
           #if status == "Inactive" then
           #  listing = false
           #else
           #  listing = true
           #end
-          
+
           if quantity == 0 then
             listing = false
           else
             listing = true
           end
 
-          
+
           #if channel == "DEFAULT" then
           #  shipping_type = "default"
-          #else 
+          #else
           #  shipping_type = "amazon"
-          #end 
-          
+          #end
+
           #skuで判断
           if tsku.include?("_F_") then
             shipping_type = "amazon"
@@ -852,7 +852,7 @@ class Product < ApplicationRecord
               shipping_type = "default"
             end
           end
-          
+
           if tsku.include?("used") then
             listing_condition = "Used"
           else
@@ -885,9 +885,9 @@ class Product < ApplicationRecord
     end
     logger.debug(counter.to_s)
     logger.debug("===== End Report =====")
-            
+
     Product.where(user: user, sku_checked: false).delete_all
-            
+
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
     msg = "=========================\n出品レポート取得終了\nレポートID：" + genid.to_s + "\n有効商品商品数：" + dcounter.to_s + "\n終了時刻：" + strTime + "\n========================="
@@ -896,7 +896,7 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
-            
+
   end
 
 
@@ -1064,11 +1064,11 @@ class Product < ApplicationRecord
     awskey = account.us_aws_access_key_id1
     handling_time = account.handling_time
     calc_on = ENV['CALC_ON']
-    
+
     if calc_on = "TRUE" then
       Product.new.calc_profit(user)
-    end 
-      
+    end
+
     limit = ENV['PER_REVISE_NUM'].to_i
 
     if limit == 0 then
@@ -1076,7 +1076,7 @@ class Product < ApplicationRecord
     end
 
     targets = Product.where(user: user, shipping_type: "default", revised: false)
-    
+
     if targets != nil then
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -1097,7 +1097,7 @@ class Product < ApplicationRecord
         account.cw_room_id
       )
     end
-      
+
     targets = targets.order("calc_updated_at DESC").limit(limit)
     data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
 
@@ -1108,7 +1108,7 @@ class Product < ApplicationRecord
       aws_secret_access_key: skey
     )
 
-    
+
 
     stream = ""
     File.open('app/others/Flat_File_PriceInventory_us.txt') do |file|
