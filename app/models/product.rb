@@ -62,15 +62,8 @@ class Product < ApplicationRecord
     total_counter = 0
 
     if tproducts.count > 0 then
-      tproducts.order("info_updated_at ASC NULLS FIRST")
-      logger.debug(tproducts.first)
-      asins = tproducts.group(:asin, :info_updated_at).pluck(:asin)
-      logger.debug("========================")
-      logger.debug(asins)
-      logger.debug("========================")
+      asins = tproducts.order("info_updated_at ASC NULLS FIRST").group(:asin, :info_updated_at).pluck(:asin)
       asins.each_slice(5) do |tasins|
-        logger.debug(tasins)
-        return
         update_list = Array.new
         response = nil
         time_counter2 = nil
@@ -227,8 +220,7 @@ class Product < ApplicationRecord
     tproducts = Product.where(user: user, listing_condition: condition, shipping_type: "default")
 
     if tproducts.count > 0 then
-      tproducts.order("jp_price_updated_at ASC NULLS FIRST")
-      asins = tproducts.group(:asin, :info_updated_at).pluck(:asin)
+      asins = tproducts.order("jp_price_updated_at ASC NULLS FIRST").group(:asin, :jp_price_updated_at).pluck(:asin)
       asins.each_slice(10) do |tasins|
         update_list = Array.new
         response = nil
@@ -376,7 +368,7 @@ class Product < ApplicationRecord
           end
 
           cost = lowestprice.to_f - lowestpoint.to_f
-          
+
           if asin != nil then
             if tasins.include?(asin) then
               update_list << Product.new(user: user, asin: asin, listing_condition: condition, shipping_type: "default", jp_price: lowestprice.to_f, jp_shipping: lowestship.to_f, jp_point: lowestpoint.to_f, cost_price: cost, on_sale: jp_stock, jp_price_updated_at: Time.now)
@@ -456,8 +448,7 @@ class Product < ApplicationRecord
     time_counter1 = Time.now.strftime('%s%L').to_i
 
     if tproducts.count > 0 then
-      tproducts.order("us_price_updated_at ASC NULLS FIRST")
-      asins = tproducts.group(:asin, :info_updated_at).pluck(:asin)
+      asins = tproducts.order("us_price_updated_at ASC NULLS FIRST").group(:asin, :us_price_updated_at).pluck(:asin)
       asins.each_slice(10) do |tasins|
         requests = []
         i = 0
@@ -1078,7 +1069,7 @@ class Product < ApplicationRecord
       limit = 20000
     end
 
-    targets = Product.where(user: user, shipping_type: "default", revised: false)      
+    targets = Product.where(user: user, shipping_type: "default", revised: false)
     if targets.count > 0 then
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -1089,7 +1080,7 @@ class Product < ApplicationRecord
         account.cw_room_id
       )
       targets = targets.order("jp_price_updated_at DESC NULLS LAST").limit(limit)
-      data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)      
+      data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
     else
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -1099,7 +1090,7 @@ class Product < ApplicationRecord
         account.cw_api_token,
         account.cw_room_id
       )
-      
+
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
       msg = "=========================\n価格改定フラグのクリア\n開始時刻：" + strTime + "\n========================="
@@ -1108,7 +1099,7 @@ class Product < ApplicationRecord
         account.cw_api_token,
         account.cw_room_id
       )
-      
+
       data = Product.where(user: user).pluck(:sku)
       data.each_slice(1000) do |tdata|
         uplist = Array.new
@@ -1122,12 +1113,12 @@ class Product < ApplicationRecord
         tdata = nil
         uplist = nil
       end
-      
+
       targets = Product.where(user: user, shipping_type: "default", revised: false)
       targets = targets.order("jp_price_updated_at DESC NULLS LAST").limit(limit)
-      data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)      
+      data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
     end
-      
+
     client = MWS.feeds(
       marketplace: mp,
       merchant_id: sid,
