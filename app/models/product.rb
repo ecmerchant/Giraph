@@ -1209,7 +1209,7 @@ class Product < ApplicationRecord
     fname = "products_data_" + strTime + "_"
 
     #一時ファイルの作成
-    temp_dir = '/tmp'
+    temp_dir = './tmp'
     fpath = nil
     temp_file = Tempfile.open([fname, ".csv"], temp_dir) do |f|
       bom = "\uFEFF"
