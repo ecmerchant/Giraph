@@ -1075,7 +1075,9 @@ class Product < ApplicationRecord
     end
 
     targets = Product.where(user: user, shipping_type: "default", revised: false)
-
+    targets = targets.order("jp_price_updated_at DESC NULLS LAST").limit(limit)
+    data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
+      
     if targets != nil then
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -1096,18 +1098,13 @@ class Product < ApplicationRecord
         account.cw_room_id
       )
     end
-
-    targets = targets.order("calc_updated_at DESC").limit(limit)
-    data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-
+      
     client = MWS.feeds(
       marketplace: mp,
       merchant_id: sid,
       aws_access_key_id: awskey,
       aws_secret_access_key: skey
     )
-
-
 
     stream = ""
     File.open('app/others/Flat_File_PriceInventory_us.txt') do |file|
