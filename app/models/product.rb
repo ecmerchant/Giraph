@@ -63,7 +63,7 @@ class Product < ApplicationRecord
 
     if tproducts.count > 0 then
       tproducts.order("info_updated_at ASC NULLS FIRST")
-      asins = tproducts.group(:asin).pluck(:asin)
+      asins = tproducts.group(:asin, :info_updated_at).pluck(:asin)
       asins.each_slice(5) do |tasins|
         update_list = Array.new
         response = nil
@@ -221,9 +221,8 @@ class Product < ApplicationRecord
     tproducts = Product.where(user: user, listing_condition: condition, shipping_type: "default")
 
     if tproducts.count > 0 then
-
       tproducts.order("jp_price_updated_at ASC NULLS FIRST")
-      asins = tproducts.group(:asin).pluck(:asin)
+      asins = tproducts.group(:asin, :info_updated_at).pluck(:asin)
       asins.each_slice(10) do |tasins|
         update_list = Array.new
         response = nil
@@ -452,8 +451,7 @@ class Product < ApplicationRecord
 
     if tproducts.count > 0 then
       tproducts.order("us_price_updated_at ASC NULLS FIRST")
-      asins = tproducts.group(:asin).pluck(:asin)
-
+      asins = tproducts.group(:asin, :info_updated_at).pluck(:asin)
       asins.each_slice(10) do |tasins|
         requests = []
         i = 0
