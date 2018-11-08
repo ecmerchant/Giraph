@@ -73,6 +73,7 @@ CSV.generate(bom) do |csv|
     results.each do |result|
       csv << result
     end
+    results = nil 
     pos += range
     break if pos > range_max
   end
