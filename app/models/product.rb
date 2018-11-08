@@ -1298,8 +1298,9 @@ class Product < ApplicationRecord
       end
       f.write(csv_string)
       fpath = f.path
+      f.close(false)
     end
-    temp_file.close(false)
+
     account = Account.find_by(user: user)
     account.update(
       csv_path: fpath,
