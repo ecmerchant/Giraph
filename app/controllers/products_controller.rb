@@ -16,6 +16,7 @@ class ProductsController < ApplicationController
     temp = Product.where(user: current_user.email).order("updated_at DESC")
     @counter = temp.count
     @products = temp.page(params[:page]).per(PER)
+    @account = Account.find_by(user: current_user.email)
   end
 
   def revise
@@ -230,22 +231,38 @@ class ProductsController < ApplicationController
   end
 
   def download
-
     @products = Product.where(user: current_user.email)
-
+    account = Account.find_by(user: current_user.email)
+    account.update(
+      csv_path: "データ作成中",
+      csv_created_at: Time.now
+    )
     if @products != nil then
       logger.debug("== start download ==")
       respond_to do |format|
         format.html do
+          redirect_to products_show_path
         end
         format.csv do
           logger.debug("csv")
-          tt = Time.now
-          strTime = tt.strftime("%Y%m%d%H%M")
-          fname = "商品データ_" + strTime + ".csv"
-          send_data render_to_string, filename: fname, type: :csv
+          DownloadCsvJob.perform_later(current_user.email, nil)
+          #tt = Time.now
+          #strTime = tt.strftime("%Y%m%d%H%M")
+          #fname = "商品データ_" + strTime + ".csv"
+          #send_data render_to_string, filename: fname, type: :csv
+          redirect_to products_show_path
         end
       end
+    end
+  end
+
+  def output
+    account = Account.find_by(user: current_user.email)
+    download_file_name = account.csv_path
+    if download_file_name != nil then
+      send_file download_file_name
+    else
+      redirect_to products_show_path
     end
   end
 

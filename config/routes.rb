@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   root to: 'products#show'
   get 'products/show'
   get 'products/exchange'
+  get 'products/output'
 
   get 'products/revise'
   post 'products/revise'
