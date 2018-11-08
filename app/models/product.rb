@@ -1074,29 +1074,54 @@ class Product < ApplicationRecord
       limit = 20000
     end
 
-    targets = Product.where(user: user, shipping_type: "default", revised: false)
-    targets = targets.order("jp_price_updated_at DESC NULLS LAST").limit(limit)
-    data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)
-      
+    targets = Product.where(user: user, shipping_type: "default", revised: false)      
     if targets != nil then
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-      msg = "=========================\n価格改定改定（未改定商品なし）\n開始時刻：" + strTime + "\n========================="
+      msg = "=========================\n価格改定改定\n開始時刻：" + strTime + "\n========================="
       account.msend(
         msg,
         account.cw_api_token,
         account.cw_room_id
       )
-      targets = Product.where(user: user, shipping_type: "default")
+      targets = targets.order("jp_price_updated_at DESC NULLS LAST").limit(limit)
+      data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)      
     else
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-      msg = "=========================\n価格改定開始\n開始時刻：" + strTime + "\n========================="
+      msg = "=========================\n価格改定開始（未改定商品なし）\n開始時刻：" + strTime + "\n========================="
       account.msend(
         msg,
         account.cw_api_token,
         account.cw_room_id
       )
+      
+      t = Time.now
+      strTime = t.strftime("%Y年%m月%d日 %H時%M分")
+      msg = "=========================\n価格改定フラグのクリア\n開始時刻：" + strTime + "\n========================="
+      account.msend(
+        msg,
+        account.cw_api_token,
+        account.cw_room_id
+      )
+      
+      data = Product.where(user: user).pluck(:sku)
+      data.each_slice(1000) do |tdata|
+        uplist = Array.new
+        tdata.each do |row|
+          logger.debug(row)
+          if row != nil then
+            uplist << Product.new(user: user, sku: row.to_s, revised: false)
+          end
+        end
+        Product.import uplist, on_duplicate_key_update: {constraint_name: :for_upsert, columns: [:revised]}
+        tdata = nil
+        uplist = nil
+      end
+      
+      targets = Product.where(user: user, shipping_type: "default", revised: false)
+      targets = targets.order("jp_price_updated_at DESC NULLS LAST").limit(limit)
+      data = targets.pluck(:sku, :us_listing_price, :on_sale, :listing_condition, :shipping_type)      
     end
       
     client = MWS.feeds(
