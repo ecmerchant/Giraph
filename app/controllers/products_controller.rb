@@ -245,12 +245,12 @@ class ProductsController < ApplicationController
         end
         format.csv do
           logger.debug("csv")
-          DownloadCsvJob.perform_later(current_user.email, nil)
-          #tt = Time.now
-          #strTime = tt.strftime("%Y%m%d%H%M")
-          #fname = "商品データ_" + strTime + ".csv"
-          #send_data render_to_string, filename: fname, type: :csv
-          redirect_to products_show_path
+          #DownloadCsvJob.perform_later(current_user.email, nil)
+          tt = Time.now
+          strTime = tt.strftime("%Y%m%d%H%M")
+          fname = "商品データ_" + strTime + ".csv"
+          send_data render_to_string, filename: fname, type: :csv
+          #redirect_to products_show_path
         end
       end
     end
