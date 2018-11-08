@@ -257,14 +257,7 @@ class Product < ApplicationRecord
                   fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                   domestic = listing.dig('Qualifiers', 'ShipsDomestically')
                   shipping = listing.dig('Qualifiers', 'ShippingTime')
-                  logger.debug("=======================")
-              logger.debug(fullfillment.class)
-              logger.debug(fullfillment)
-              logger.debug(domestic.class)
-              logger.debug(domestic)
-              logger.debug(shipping.class)
-              logger.debug(shipping["Max"])
-              logger.debug("=======================")
+
                   if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
@@ -290,14 +283,7 @@ class Product < ApplicationRecord
               fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
               domestic = listing.dig('Qualifiers', 'ShipsDomestically')
               shipping = listing.dig('Qualifiers', 'ShippingTime')
-              logger.debug("=======================")
-              logger.debug(fullfillment.class)
-              logger.debug(fullfillment)
-              logger.debug(domestic.class)
-              logger.debug(domestic)
-              logger.debug(shipping.class)
-              logger.debug(shipping["Max"])
-              logger.debug("=======================")
+
               if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
                 if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
@@ -333,14 +319,7 @@ class Product < ApplicationRecord
                   fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                   domestic = listing.dig('Qualifiers', 'ShipsDomestically')
                   shipping = listing.dig('Qualifiers', 'ShippingTime')
-                  logger.debug("=======================")
-              logger.debug(fullfillment.class)
-              logger.debug(fullfillment)
-              logger.debug(domestic.class)
-              logger.debug(domestic)
-              logger.debug(shipping.class)
-              logger.debug(shipping["Max"])
-              logger.debug("=======================")
+
                   if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
                     if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
@@ -366,14 +345,7 @@ class Product < ApplicationRecord
               fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
               domestic = listing.dig('Qualifiers', 'ShipsDomestically')
               shipping = listing.dig('Qualifiers', 'ShippingTime')
-logger.debug("=======================")
-              logger.debug(fullfillment.class)
-              logger.debug(fullfillment)
-              logger.debug(domestic.class)
-              logger.debug(domestic)
-              logger.debug(shipping.class)
-              logger.debug(shipping["Max"])
-              logger.debug("=======================")
+
               if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
                 if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
@@ -409,7 +381,6 @@ logger.debug("=======================")
           total_counter += 1
         end
 
-        return
         Product.import update_list, on_duplicate_key_update: {constraint_name: :for_asin_upsert, columns: [:jp_price, :jp_shipping, :jp_point, :cost_price, :on_sale, :shipping_type, :jp_price_updated_at]}
         update_list = nil
 
