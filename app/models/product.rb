@@ -63,6 +63,7 @@ class Product < ApplicationRecord
 
     if tproducts.count > 0 then
       tproducts.order("info_updated_at ASC NULLS FIRST")
+      logger.debug(tproducts.first)
       asins = tproducts.group(:asin, :info_updated_at).pluck(:asin)
       logger.debug("========================")
       logger.debug(asins)
