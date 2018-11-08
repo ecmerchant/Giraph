@@ -1075,10 +1075,10 @@ class Product < ApplicationRecord
     end
 
     targets = Product.where(user: user, shipping_type: "default", revised: false)      
-    if targets != nil then
+    if targets.count > 0 then
       t = Time.now
       strTime = t.strftime("%Y年%m月%d日 %H時%M分")
-      msg = "=========================\n価格改定改定\n開始時刻：" + strTime + "\n========================="
+      msg = "=========================\n価格改定開始\n開始時刻：" + strTime + "\n========================="
       account.msend(
         msg,
         account.cw_api_token,
