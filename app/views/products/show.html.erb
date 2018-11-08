@@ -92,10 +92,14 @@
         <tbody>
           <tr>
             <td width="150px"><%= @account.csv_created_at %></td>
-            <% if @account.csv_path != "データ作成中" then %>
-              <td width="300px"><%= link_to File.basename(@account.csv_path), { :controller => "products", :action => "output"} %></td>
+            <% if @account.csv_path != nil then %>
+              <% if @account.csv_path != "データ作成中" then %>
+                <td width="300px"><%= link_to File.basename(@account.csv_path), { :controller => "products", :action => "output"} %></td>
+              <% else %>
+                <td width="300px">CSV作成中</td>
+              <% end %>
             <% else %>
-              <td width="300px">CSV作成中</td>
+              <td width="300px">データなし</td>
             <% end %>
           </tr>
         </tbody>
