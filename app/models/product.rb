@@ -61,7 +61,7 @@ class Product < ApplicationRecord
     counter = 0
     total_counter = 0
 
-    if tproducts != nil then
+    if tproducts.count > 0 then
       tproducts.order("info_updated_at ASC NULLS FIRST")
       asins = tproducts.group(:asin).pluck(:asin)
       asins.each_slice(5) do |tasins|
@@ -220,7 +220,7 @@ class Product < ApplicationRecord
     time_counter1 = Time.now.strftime('%s%L').to_i
     tproducts = Product.where(user: user, listing_condition: condition, shipping_type: "default")
 
-    if tproducts != nil then
+    if tproducts.count > 0 then
 
       tproducts.order("jp_price_updated_at ASC NULLS FIRST")
       asins = tproducts.group(:asin).pluck(:asin)
@@ -450,7 +450,7 @@ class Product < ApplicationRecord
     )
     time_counter1 = Time.now.strftime('%s%L').to_i
 
-    if tproducts != nil then
+    if tproducts.count > 0 then
       tproducts.order("us_price_updated_at ASC NULLS FIRST")
       asins = tproducts.group(:asin).pluck(:asin)
 
