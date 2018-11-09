@@ -682,11 +682,11 @@ class Product < ApplicationRecord
     )
 
     if condition == "New" then
-      GetUsPriceJob.set(queue: :us_used_item).perform_later(user, "Used")
+      GetUsPriceJob.set(queue: :us_used_item).perform_later(user, "Used", fee_check)
     end
 
     if condition == "Used" then
-      GetUsPriceJob.set(queue: :us_new_item).perform_later(user, "New")
+      GetUsPriceJob.set(queue: :us_new_item).perform_later(user, "New", fee_check)
     end
 
   end
