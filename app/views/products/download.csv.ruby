@@ -33,10 +33,10 @@ CSV.generate(bom) do |csv|
 
 
   shift = ENV['DL_SHIFT'].to_i
-  range_max = ENV['DL_RANGE'].to_i
+  range_max = ENV['DL_RANGE_MAX'].to_i
 
-  pos = shift
-  range = 20000
+  pos = 0
+  range = shift
 
   csv << header
   loop do
