@@ -33,13 +33,14 @@ CSV.generate(bom) do |csv|
 
 
   shift = ENV['DL_SHIFT'].to_i
-  range_max = ENV['DL_RANGE'].to_i
+  range_max = ENV['DL_RANGE_MAX'].to_i
 
-  pos = shift
-  range = 20000
+  pos = 0
+  range = shift
 
   csv << header
   loop do
+    t1 = Time.now.strftime('%s%L').to_i
     results = @products.offset(pos).limit(range).pluck(
       :asin,
       :sku,
@@ -69,11 +70,25 @@ CSV.generate(bom) do |csv|
       :on_sale,
       :listing
     )
+    t2 = Time.now.strftime('%s%L').to_i
+    diff = t2 - t1
+    logger.debug("==== pluck: " + diff.to_s + " ====")
     break if results.empty?
+    
+    t1 = Time.now.strftime('%s%L').to_i
     results.each do |result|
       csv << result
     end
+    t2 = Time.now.strftime('%s%L').to_i
+    diff = t2 - t1
+    logger.debug("==== csv insert: " + diff.to_s + " ====")
+    
+    t1 = Time.now.strftime('%s%L').to_i
     results = nil 
+    t2 = Time.now.strftime('%s%L').to_i
+    diff = t2 - t1
+    logger.debug("==== object clear: " + diff.to_s + " ====")
+    
     pos += range
     break if pos > range_max
   end
