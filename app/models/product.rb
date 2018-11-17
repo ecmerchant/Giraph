@@ -767,7 +767,7 @@ class Product < ApplicationRecord
     once = false
     dcounter = 0
 
-    while process != "_DONE_" && process != "_DONE_NO_DATA_"
+    while process != "_DONE_" && process != "_DONE_NO_DATA_" && process != "_CANCELLED_"
       response = client.get_report_request_list(mws_options)
       parser = response.parse
       process = parser.dig('ReportRequestInfo', 'ReportProcessingStatus')
@@ -778,7 +778,11 @@ class Product < ApplicationRecord
       elsif process == "_DONE_NO_DATA_" then
         genid = "NODATA"
         break
+      elsif process == "_CANCELLED_" then
+        genid = "NODATA"
+        break
       end
+
       if once == false then
         logger.debug("====== UPDATE SKU START =======")
         targets = products.where.not(sku_checked: false).pluck(:sku)
@@ -958,10 +962,10 @@ class Product < ApplicationRecord
         sku = temp[8]
 
         us_sell_fee = 0.0
-        
+
         if referral_fee_rate > 0.50 then
           referral_fee_rate = 0.15
-        end 
+        end
 
         if (1.0 - referral_fee_rate) != 0 then
           min_price = (((cost + shipping + delivery_fee_default) / calc_ex_rate + variable_closing_fee) / (1.0 - referral_fee_rate)).round(2)
@@ -978,12 +982,12 @@ class Product < ApplicationRecord
           if list_price < min_price then
             list_price = min_price
           end
-          
+
           us_sell_fee = list_price * referral_fee_rate
           if us_sell_fee < 1.0 then
             us_sell_fee = 1.0
           end
-          
+
           profit = (list_price - us_sell_fee - variable_closing_fee) * calc_ex_rate - cost - shipping - delivery_fee_default
           profit = profit.round(0)
         else
@@ -1160,7 +1164,7 @@ class Product < ApplicationRecord
             quantity = 0
             price = ""
           end
-            
+
           fulfillment_channel = row[4]
           listing = false
           if price != "" then

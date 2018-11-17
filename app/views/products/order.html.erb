@@ -1,32 +1,59 @@
 <div class="page-header" id="banner">
   <div class="row">
     <div class="col-lg-12">
-      <div class="col-lg-5">
+      <div class="col-lg-6">
       <h5>注文状況の確認</h5>
       <%= form_tag('/products/order', :method => :post) do %>
+        <div class="col-lg-5">
         <div class="form-group">
           <label for="order_st_date">開始日</label>
           <%= text_field :order, :st_date, class: 'form-control', type: 'date'  %>
         </div>
+        </div>
+        <div class="col-lg-5">
         <div class="form-group">
           <label for="order_en_date">終了日</label>
           <%= text_field :order, :en_date, class: 'form-control', type: 'date' %>
         </div>
+        </div>
+        <div class="col-lg-2">
+        <div class="actions">
+          <label for="btn_do"></label>
+          <%= submit_tag("実行", class: 'btn btn-primary', id: 'btn_do') %>
+        </div>
+        </div>
       <% end %>
       </div>
-      <div class="col-lg-7">
+      <div class="col-lg-6">
         <br>
       </div>
       <div class="col-lg-12">
+        <div class="col-lg-2">
+          <%= link_to "ダウンロード", { :controller => "products", :action => "order_download", :format => "csv" }, { :class => "btn btn-primary", :style => "margin-right: 5px;" }  %>
+        </div>
+        <div class="col-lg-10">
+          <%= form_tag('/products/order_upload', method:'post', multipart: true, id:"order_form") do %>
+            <label style="vertical-align:middle; margin-left:20px;">
+                <span class="btn btn-primary">
+                  アップロード
+                  <input type="file" name="order_list" onChange="$('#order_form').submit();" style="display:none">
+                </span>
+              </label>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      <div class="col-lg-12">
+        <br>
       <table class="table table-striped table-hover table-bordered table-headerfixed ellipsis tablesorter" id="feed_table">
         <thead class="thead-inverse" style="font-size: 9pt;">
           <tr>
-            <th width="10%">注文日</th>
+            <th width="14%">注文日</th>
             <th width="15%">Order ID</th>
             <th width="14%">SKU</th>
-            <th width="7%">売上</th>
-            <th width="12%">Amazon手数料[$]</th>
-            <th width="8%">計算為替</th>
+            <th width="7%">売上[$]</th>
+            <th width="8%">手数料[$]</th>
+            <th width="8%">為替[円/$]</th>
             <th width="10%">仕入値[円]</th>
             <th width="10%">送料[円]</th>
             <th width="8%">利益[円]</th>
@@ -36,11 +63,11 @@
         <tbody>
           <% @orders.each do |temp| %>
           <tr>
-            <td width="10%"><%= temp.order_date %></td>
+            <td width="14%"><%= temp.order_date.strftime("%Y-%m-%d %H:%M") %></td>
             <td width="15%"><%= temp.order_id %></td>
             <td width="14%"><%= temp.sku %></td>
             <td width="7%"><%= temp.sales %></td>
-            <td width="12%"><%= temp.amazon_fee %></td>
+            <td width="8%"><%= temp.amazon_fee %></td>
             <td width="8%"><%= temp.ex_rate %></td>
             <td width="10%"><%= temp.cost_price %></td>
             <td width="10%"><%= temp.listing_shipping %></td>

@@ -20,8 +20,13 @@ Rails.application.routes.draw do
   post 'products/reset'
 
   get 'products/download'
-
   get 'products/calculate'
+
+  get 'products/order_download'
+  post 'products/order_download'
+  get 'products/order_upload'
+  post 'products/order_upload'
+
 
   get 'products/setup'
   post 'products/setup'

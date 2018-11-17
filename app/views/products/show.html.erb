@@ -81,31 +81,6 @@
       <br>
       <%= link_to "ダウンロード", { :controller => "products", :action => "download", :format => "csv" }, { :class => "btn btn-primary", :style => "margin-right: 20px;" }  %>
       <br>
-      <br>
-<!--
-      <table class="table table-striped table-hover table-bordered ellipsis">
-        <thead>
-          <tr>
-            <th width="150px">実行日時</th>
-            <th width="300px">ファイルステータス</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td width="150px"><%= @account.csv_created_at %></td>
-            <% if @account.csv_path != nil then %>
-              <% if @account.csv_path != "データ作成中" then %>
-                <td width="300px"><%= link_to File.basename(@account.csv_path), { :controller => "products", :action => "output"} %></td>
-              <% else %>
-                <td width="300px">CSV作成中</td>
-              <% end %>
-            <% else %>
-              <td width="300px">データなし</td>
-            <% end %>
-          </tr>
-        </tbody>
-      </table>
--->
     </div>
   </div>
 </div>

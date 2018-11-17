@@ -112,7 +112,7 @@ class ProductsController < ApplicationController
 
     fee_check = ENV['FEE_CHECK']
     if fee_check == nil then
-      fee_check = "FALSE"
+      fee_check = "TRUE"
     end
     condition = "New"
     GetUsPriceJob.set(queue: :us_new_item).perform_later(user, condition, fee_check)
@@ -186,11 +186,14 @@ class ProductsController < ApplicationController
   def order
     @login_user = current_user
     @account = Account.find_by(user: current_user.email)
+    @orders = OrderList.where(user: current_user.email)
     if request.post? then
-
-
-    else
-      @orders = OrderList.where(user: current_user.email)
+      res = params[:order]
+      start_date = Time.parse(res[:st_date]).iso8601
+      end_date = Time.parse(res[:en_date]).iso8601
+      logger.debug(start_date)
+      logger.debug(end_date)
+      OrderList.new.get_order_report(current_user.email, start_date, end_date)
     end
   end
 
@@ -264,6 +267,61 @@ class ProductsController < ApplicationController
     else
       redirect_to products_show_path
     end
+  end
+
+  def order_download
+    respond_to do |format|
+      format.html do
+        redirect_to products_order_path
+      end
+      format.csv do
+        tt = Time.now
+        strTime = tt.strftime("%Y%m%d%H%M")
+        fname = "注文データ_" + strTime + ".csv"
+        @orders = OrderList.where(user: current_user.email)
+        send_data render_to_string, filename: fname, type: :csv
+      end
+    end
+  end
+
+  def order_upload
+    if request.post? then
+      data = params[:order_list]
+      if data != nil then
+        list = Array.new
+        CSV.foreach(data.path, encoding: "SJIS") do |buf|
+          temp = buf[0]
+          row = temp.split("\t")
+          logger.debug(row[0])
+          order_id = row[1]
+          sku = row[2]
+          sale = row[3].to_f
+          fee = row[4].to_f
+          rate = row[5].to_f
+          cost = row[6].to_f
+          shipping = row[7].to_f
+          user = current_user.email
+
+          if cost != nil then
+            profit = (sale - fee) * rate - cost - shipping
+            roi = profit / (cost + shipping + fee * rate)
+            profit = profit.round(0)
+            roi = (roi * 100.0).round(1)
+          else
+            profit = nil
+            roi = nil
+          end
+          logger.debug(sku)
+          logger.debug(order_id)
+          logger.debug(cost)
+          if sku != "SKU" && sku != nil then
+            list << OrderList.new(user: user, order_id: order_id, sku: sku, sales: sale, cost_price: cost, listing_shipping: shipping, profit: profit, roi: roi)
+          end
+        end
+        OrderList.import list, on_duplicate_key_update: {constraint_name: :for_upsert_order, columns: [:cost_price, :listing_shipping, :profit, :roi]}, validate: false
+      end
+    end
+    redirect_to products_order_path
   end
 
   private
