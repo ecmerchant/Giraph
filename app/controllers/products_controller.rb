@@ -334,10 +334,10 @@ class ProductsController < ApplicationController
           logger.debug(order_id)
           logger.debug(cost)
           if sku != "SKU" && sku != nil then
-            list << OrderList.new(user: user, order_id: order_id, sku: sku, sales: sale, cost_price: cost, listing_shipping: shipping, profit: profit, roi: roi)
+            list << OrderList.new(user: user, order_id: order_id, sku: sku, sales: sale, ex_rate: rate, cost_price: cost, listing_shipping: shipping, profit: profit, roi: roi)
           end
         end
-        OrderList.import list, on_duplicate_key_update: {constraint_name: :for_upsert_order, columns: [:cost_price, :listing_shipping, :profit, :roi]}, validate: false
+        OrderList.import list, on_duplicate_key_update: {constraint_name: :for_upsert_order, columns: [:cost_price, :ex_rate, :listing_shipping, :profit, :roi]}, validate: false
       end
     end
     redirect_to products_order_path

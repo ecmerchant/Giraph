@@ -91,7 +91,8 @@ class OrderList < ApplicationRecord
           quantity = row[9].to_i
           sale = row[11].to_f
           order_date = row[2].in_time_zone
-          calc_rate = ex_rate
+          #calc_rate = ex_rate
+          calc_rate = nil
 
           temp = products.find_by(sku: sku)
           if temp != nil then
@@ -117,7 +118,7 @@ class OrderList < ApplicationRecord
           end
         end
 
-        OrderList.import sku_lists, on_duplicate_key_update: {constraint_name: :for_upsert_order, columns: [:user, :sales, :amazon_fee, :ex_rate]}, validate: false
+        OrderList.import sku_lists, on_duplicate_key_update: {constraint_name: :for_upsert_order, columns: [:user, :sales, :amazon_fee]}, validate: false
 
         rows = nil
         sku_lists = nil
