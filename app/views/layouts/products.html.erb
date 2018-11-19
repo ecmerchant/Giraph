@@ -135,7 +135,7 @@
                 <a href="/products/order" class="nav-link">注文情報</a>
               </li>
               <li class="nav-item">
-                <a href="/products/setup" class="nav-link">アカウント設定</a>
+                <a href="/products/setup" class="nav-link">アカウント</a>
               </li>
               <li class="nav-item">
                 <a href="/users/sign_out" class="nav-link">ログアウト</a>
@@ -143,7 +143,7 @@
               <% if @login_user != nil then %>
               <% if @login_user.admin_flg == true then %>
               <li class="nav-item">
-                <a href="/admin" class="nav-link">管理画面</a>
+                <a href="/admin" class="nav-link">管理</a>
               </li>
               <% end %>
               <li class="nav-item">

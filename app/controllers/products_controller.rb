@@ -34,10 +34,7 @@ class ProductsController < ApplicationController
   def result
     user = current_user.email
     feed_id = Account.find_by(user: user).feed_submission_id
-    #GetFeedResultJob.set(queue: :feed_result).perform_later(user, feed_id)
-
     Feed.new.get_result(user, feed_id)
-
     redirect_to products_revise_path
   end
 
@@ -186,14 +183,36 @@ class ProductsController < ApplicationController
   def order
     @login_user = current_user
     @account = Account.find_by(user: current_user.email)
-    @orders = OrderList.where(user: current_user.email)
+
+    temp = OrderList.where(user: current_user.email).order("order_date ASC")
+    @counter = temp.count
+    @orders = temp.page(params[:page]).per(PER)
+
     if request.post? then
-      res = params[:order]
-      start_date = Time.parse(res[:st_date]).iso8601
-      end_date = Time.parse(res[:en_date]).iso8601
-      logger.debug(start_date)
-      logger.debug(end_date)
-      OrderList.new.get_order_report(current_user.email, start_date, end_date)
+      btn_name = params[:commit]
+      if btn_name == "注文レポート取得" then
+        res = params[:order]
+        start_date = Time.parse(res[:st_date]).iso8601
+        end_date = Time.parse(res[:en_date]).iso8601
+        logger.debug(start_date)
+        logger.debug(end_date)
+        GetOrderReportJob.perform_later(current_user.email, start_date, end_date)
+      else
+        #DL
+        res = params[:order]
+        start_date = Time.parse(res[:st_date])
+        end_date = Time.parse(res[:en_date])
+        logger.debug(start_date)
+        logger.debug(end_date)
+
+        tt = Time.now
+        strTime = tt.strftime("%Y%m%d%H%M")
+        fname = "注文データ_" + strTime + ".csv"
+        @orders = OrderList.where(user: current_user.email, order_date: start_date..end_date).order("order_date ASC")
+
+        data = render_to_string template: "products/order_download.csv"
+        send_data(data, filename: fname, type: :csv)
+      end
     end
   end
 

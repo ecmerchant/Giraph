@@ -91,15 +91,6 @@ class OrderList < ApplicationRecord
           quantity = row[9].to_i
           sale = row[11].to_f
           order_date = row[2].in_time_zone
-
-          tag = orders.find_by(sku: sku)
-          if tag != nil then
-            cost = tag.cost_price
-            shipping = tag.listing_shipping
-          else
-            cost = nil
-            shipping = nil
-          end
           calc_rate = ex_rate
 
           temp = products.find_by(sku: sku)
@@ -107,15 +98,7 @@ class OrderList < ApplicationRecord
             amazon_fee = temp.referral_fee_rate * sale + temp.variable_closing_fee.to_f
             amazon_fee = amazon_fee.round(2)
           else
-            amazon_fee = nil
-          end
-
-          if cost != nil then
-            profit = (sale - amazon_fee) * calc_rate - cost - shipping
-            roi = profit / (cost + shipping + amazon_fee * calc_rate)
-          else
-            profit = nil
-            roi = nil
+            amazon_fee = sale * 0.10
           end
 
           logger.debug("==== VARIAIBLE =====")
@@ -124,21 +107,17 @@ class OrderList < ApplicationRecord
           logger.debug(sale)
           logger.debug(quantity)
           logger.debug(order_date)
-          logger.debug(cost)
-          logger.debug(shipping)
           logger.debug(amazon_fee)
-          logger.debug(profit)
-          logger.debug(roi)
 
           counter += 1
           if sku != nil then
             dcounter += 1
             logger.debug("No." + counter.to_s + ", SKU: " + sku.to_s + ", Order: " + order_id.to_s)
-            sku_lists << OrderList.new(user: user, order_date: order_date, order_id: order_id, sku: sku, sales: sale, amazon_fee: amazon_fee, ex_rate: calc_rate, cost_price: cost, listing_shipping: shipping, profit: profit, roi: roi)
+            sku_lists << OrderList.new(user: user, order_date: order_date, order_id: order_id, sku: sku, sales: sale, amazon_fee: amazon_fee, ex_rate: calc_rate)
           end
         end
 
-        OrderList.import sku_lists, on_duplicate_key_update: {constraint_name: :for_upsert_order, columns: [:user, :sales, :amazon_fee, :ex_rate, :profit, :roi]}, validate: false
+        OrderList.import sku_lists, on_duplicate_key_update: {constraint_name: :for_upsert_order, columns: [:user, :sales, :amazon_fee, :ex_rate]}, validate: false
 
         rows = nil
         sku_lists = nil

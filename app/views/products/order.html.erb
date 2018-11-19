@@ -1,16 +1,15 @@
 <div class="page-header" id="banner">
   <div class="row">
     <div class="col-lg-12">
-      <div class="col-lg-6">
       <h5>注文状況の確認</h5>
       <%= form_tag('/products/order', :method => :post) do %>
-        <div class="col-lg-5">
+        <div class="col-lg-3">
         <div class="form-group">
           <label for="order_st_date">開始日</label>
           <%= text_field :order, :st_date, class: 'form-control', type: 'date'  %>
         </div>
         </div>
-        <div class="col-lg-5">
+        <div class="col-lg-3">
         <div class="form-group">
           <label for="order_en_date">終了日</label>
           <%= text_field :order, :en_date, class: 'form-control', type: 'date' %>
@@ -18,23 +17,28 @@
         </div>
         <div class="col-lg-2">
         <div class="actions">
-          <label for="btn_do"></label>
-          <%= submit_tag("実行", class: 'btn btn-primary', id: 'btn_do') %>
+          <br>
+          <%= submit_tag("注文レポート取得", class: 'btn btn-primary', id: 'btn_do') %>
+        </div>
+        </div>
+        <div class="col-lg-2">
+        <div class="actions">
+          <br>
+          <%= submit_tag("ダウンロード", class: 'btn btn-primary', id: 'btn_dl', style: 'margin-left:15px;') %>
         </div>
         </div>
       <% end %>
-      </div>
-      <div class="col-lg-6">
-        <br>
-      </div>
-      <div class="col-lg-12">
+        <!--
         <div class="col-lg-2">
-          <%= link_to "ダウンロード", { :controller => "products", :action => "order_download", :format => "csv" }, { :class => "btn btn-primary", :style => "margin-right: 5px;" }  %>
+          <br>
+          <%= link_to "ダウンロード", { :controller => "products", :action => "order_download", :format => "csv"}, { :class => "btn btn-primary", :style => "margin-left: 20px;" }  %>
         </div>
-        <div class="col-lg-10">
+        -->
+        <div class="col-lg-2">
+          <br>
           <%= form_tag('/products/order_upload', method:'post', multipart: true, id:"order_form") do %>
             <label style="vertical-align:middle; margin-left:20px;">
-                <span class="btn btn-primary">
+                <span class="btn btn-info">
                   アップロード
                   <input type="file" name="order_list" onChange="$('#order_form').submit();" style="display:none">
                 </span>
@@ -43,8 +47,9 @@
           <% end %>
         </div>
       </div>
-      <div class="col-lg-12">
-        <br>
+      <br>
+      <h5>注文データ <small>全<%= @counter %>件</small></h5>
+      <%= paginate @orders %>
       <table class="table table-striped table-hover table-bordered table-headerfixed ellipsis tablesorter" id="feed_table">
         <thead class="thead-inverse" style="font-size: 9pt;">
           <tr>
@@ -77,7 +82,15 @@
           <% end %>
         </tbody>
       </table>
-      </div>
     </div>
   </div>
 </div>
+<script>
+  $(document).ready(function(){
+    $("#btn_dl").click(function(){
+      setTimeout(function(){
+        location.reload();
+      },1000);
+    });
+  });
+</script>
