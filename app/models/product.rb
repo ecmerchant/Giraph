@@ -10,9 +10,7 @@ class Product < ApplicationRecord
   #日本アマゾン商品情報の取得
   def check_amazon_jp_info(user, condition)
     logger.debug ("==== START JP INFO ======")
-
     tproducts = Product.where(user:user, listing_condition: condition)
-
     buffer = ShippingCost.where(user: user)
 
     t_a = buffer.where(name: "送料表A").order(weight: "ASC")
@@ -213,6 +211,13 @@ class Product < ApplicationRecord
       account.cw_api_token,
       account.cw_room_id
     )
+
+    jp_interval = ENV['JP_INTERVAL']
+    if jp_interval == nil then
+      jp_interval = 920.0
+    else
+      jp_interval = jp_interval.to_f
+    end 
 
     counter = 0
     total_counter = 0
