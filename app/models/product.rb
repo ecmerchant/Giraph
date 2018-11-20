@@ -217,7 +217,7 @@ class Product < ApplicationRecord
       jp_interval = 920.0
     else
       jp_interval = jp_interval.to_f
-    end 
+    end
 
     counter = 0
     total_counter = 0
@@ -235,7 +235,7 @@ class Product < ApplicationRecord
         Retryable.retryable(tries: 5, sleep: 2.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
-          while diff_time < 920.0 do
+          while diff_time < jp_interval do
             sleep(0.02)
             time_counter2 = Time.now.strftime('%s%L').to_i
             diff_time = time_counter2 - time_counter1
