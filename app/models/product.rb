@@ -68,7 +68,7 @@ class Product < ApplicationRecord
         response = nil
         time_counter2 = nil
         diff_time = nil
-        Retryable.retryable(tries: 5, sleep: 2.0) do
+        Retryable.retryable(tries: 5, sleep: 5.0) do
           time_counter2 = Time.now.strftime('%s%L').to_i
           diff_time = time_counter2 - time_counter1
           while diff_time < 1000.0 do
