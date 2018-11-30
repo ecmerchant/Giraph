@@ -102,24 +102,29 @@ class Product < ApplicationRecord
               size_Weight = 0
               shipping_cost = 0
             end
-          else
-            asin = product.dig(1, 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
-            buf = product.dig(1, 'Product', 'AttributeSets', 'ItemAttributes')
-            if buf != nil then
-              size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
-              size_Length = buf.dig("PackageDimensions", "Length", "__content__").to_f * 2.54
-              size_Width = buf.dig("PackageDimensions", "Width", "__content__").to_f * 2.54
-              size_Weight = buf.dig("PackageDimensions", "Weight", "__content__").to_f * 0.4536
+          elsif product.class == Array then
+            begin
+              asin = product.dig(1, 'Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
+              buf = product.dig(1, 'Product', 'AttributeSets', 'ItemAttributes')
+              if buf != nil then
+                size_Height = buf.dig("PackageDimensions", "Height", "__content__").to_f * 2.54
+                size_Length = buf.dig("PackageDimensions", "Length", "__content__").to_f * 2.54
+                size_Width = buf.dig("PackageDimensions", "Width", "__content__").to_f * 2.54
+                size_Weight = buf.dig("PackageDimensions", "Weight", "__content__").to_f * 0.4536
 
-              size_Height = size_Height.round(2)
-              size_Length = size_Length.round(2)
-              size_Width = size_Width.round(2)
-              size_Weight = size_Weight.round(2)
-            else
-              size_Height = 0
-              size_Length = 0
-              size_Width = 0
-              size_Weight = 0
+                size_Height = size_Height.round(2)
+                size_Length = size_Length.round(2)
+                size_Width = size_Width.round(2)
+                size_Weight = size_Weight.round(2)
+              else
+                size_Height = 0
+                size_Length = 0
+                size_Width = 0
+                size_Weight = 0
+              end
+            rescue => e
+              logger.debug(e)
+              break
             end
           end
 
