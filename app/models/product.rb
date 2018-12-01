@@ -194,7 +194,6 @@ class Product < ApplicationRecord
   #日本アマゾンFBA価格の監視
   def check_amazon_jp_price(user, condition)
     logger.debug ("==== START JP CHECK ======")
-    condition = "Used"
     mp = "A1VC38T7YXB528"
     account = Account.find_by(user: user)
     sid = account.seller_id
@@ -410,8 +409,6 @@ class Product < ApplicationRecord
         logger.debug("==== JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
       end
     end
-
-    return
 
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
