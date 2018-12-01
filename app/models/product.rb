@@ -194,7 +194,7 @@ class Product < ApplicationRecord
   #日本アマゾンFBA価格の監視
   def check_amazon_jp_price(user, condition)
     logger.debug ("==== START JP CHECK ======")
-
+    condition = "Used"
     mp = "A1VC38T7YXB528"
     account = Account.find_by(user: user)
     sid = account.seller_id
@@ -251,6 +251,7 @@ class Product < ApplicationRecord
 
         parser = response.parse
         parser.each do |product|
+
           if product.class == Hash then
             asin = product.dig('Product', 'Identifiers', 'MarketplaceASIN', 'ASIN')
             buf = product.dig('Product', 'LowestOfferListings', 'LowestOfferListing')
@@ -260,6 +261,7 @@ class Product < ApplicationRecord
             jp_stock = false
             if buf.class == Array then
               buf.each do |listing|
+                logger.debug(listing)
                 if listing.class == Hash then
                   fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
                   domestic = listing.dig('Qualifiers', 'ShipsDomestically')
@@ -274,7 +276,7 @@ class Product < ApplicationRecord
                       break
                     else
                       subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                      if subcondition == "Mint" || subcondition == "Very Good" then
+                      if subcondition == "Mint" || subcondition == "VeryGood" then
                         lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                         lowestship = listing.dig('Price', 'Shipping','Amount')
                         lowestpoint = listing.dig('Price', 'Points','PointsNumber')
@@ -299,7 +301,7 @@ class Product < ApplicationRecord
                   jp_stock = true
                 else
                   subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                  if subcondition == "Mint" || subcondition == "Very Good" then
+                  if subcondition == "Mint" || subcondition == "VeryGood" then
                     lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                     lowestship = listing.dig('Price', 'Shipping','Amount')
                     lowestpoint = listing.dig('Price', 'Points','PointsNumber')
@@ -314,66 +316,69 @@ class Product < ApplicationRecord
               jp_stock = false
             end
           else
-            asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
-            buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
-            lowestprice = 0
-            lowestship = 0
-            lowestpoint = 0
-            jp_stock = false
-            if buf.class == Array then
-              buf.each do |listing|
-                if listing.class == Hash then
-                  fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                  domestic = listing.dig('Qualifiers', 'ShipsDomestically')
-                  shipping = listing.dig('Qualifiers', 'ShippingTime')
+            begin
+              asin = product.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
+              buf = product.dig(1, 'LowestOfferListings', 'LowestOfferListing')
+              lowestprice = 0
+              lowestship = 0
+              lowestpoint = 0
+              jp_stock = false
+              if buf.class == Array then
+                buf.each do |listing|
+                  if listing.class == Hash then
+                    fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+                    domestic = listing.dig('Qualifiers', 'ShipsDomestically')
+                    shipping = listing.dig('Qualifiers', 'ShippingTime')
 
-                  if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
-                    if condition == "New" then
-                      lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                      lowestship = listing.dig('Price', 'Shipping','Amount')
-                      lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                      jp_stock = true
-                      break
-                    else
-                      subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                      if subcondition == "Mint" || subcondition == "Very Good" then
+                    if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
+                      if condition == "New" then
                         lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                         lowestship = listing.dig('Price', 'Shipping','Amount')
                         lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                         jp_stock = true
                         break
+                      else
+                        subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                        if subcondition == "Mint" || subcondition == "VeryGood" then
+                          lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                          lowestship = listing.dig('Price', 'Shipping','Amount')
+                          lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                          jp_stock = true
+                          break
+                        end
                       end
                     end
                   end
                 end
-              end
-            elsif buf.class == Hash
-              listing = buf
-              fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-              domestic = listing.dig('Qualifiers', 'ShipsDomestically')
-              shipping = listing.dig('Qualifiers', 'ShippingTime')
+              elsif buf.class == Hash
+                listing = buf
+                fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+                domestic = listing.dig('Qualifiers', 'ShipsDomestically')
+                shipping = listing.dig('Qualifiers', 'ShippingTime')
 
-              if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
-                if condition == "New" then
-                  lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                  lowestship = listing.dig('Price', 'Shipping','Amount')
-                  lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                  jp_stock = true
-                else
-                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                  if subcondition == "Mint" || subcondition == "Very Good" then
+                if fullfillment == "Amazon" && domestic == "True" && shipping["Max"] == "0-2 days" then
+                  if condition == "New" then
                     lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                     lowestship = listing.dig('Price', 'Shipping','Amount')
                     lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                     jp_stock = true
+                  else
+                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                    if subcondition == "Mint" || subcondition == "VeryGood" then
+                      lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                      lowestship = listing.dig('Price', 'Shipping','Amount')
+                      lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                      jp_stock = true
+                    end
                   end
                 end
+              else
+                lowestprice = 0
+                lowestship = 0
+                lowestpoint = 0
+                jp_stock = false
               end
-            else
-              lowestprice = 0
-              lowestship = 0
-              lowestpoint = 0
-              jp_stock = false
+            rescue => e
             end
           end
 
@@ -405,6 +410,8 @@ class Product < ApplicationRecord
         logger.debug("==== JP_PRICE_" + condition.to_s.upcase + ": No." + total_counter.to_s + ", Diff: " + diff_time.to_s + "====")
       end
     end
+
+    return
 
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -499,7 +506,7 @@ class Product < ApplicationRecord
                     break
                   else
                     subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                    if subcondition == "Mint" || subcondition == "Very Good" then
+                    if subcondition == "Mint" || subcondition == "VeryGood" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
                       lowestpoint = listing.dig('Price', 'Points','PointsNumber')
@@ -517,7 +524,7 @@ class Product < ApplicationRecord
                 lowestpoint = listing.dig('Price', 'Points','PointsNumber')
               else
                 subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                if subcondition == "Mint" || subcondition == "Very Good" then
+                if subcondition == "Mint" || subcondition == "VeryGood" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
                   lowestpoint = listing.dig('Price', 'Points','PointsNumber')
@@ -529,50 +536,53 @@ class Product < ApplicationRecord
               lowestpoint = 0
             end
           else
-            asin = parser.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
-            buf = parser.dig(1, 'LowestOfferListings', 'LowestOfferListing')
-            lowestprice = 0
-            lowestship = 0
-            lowestpoint = 0
-            if buf.class == Array then
-              buf.each do |listing|
-                if listing.class == Hash then
-                  fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
-                  if condition == "New" then
-                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                    lowestship = listing.dig('Price', 'Shipping','Amount')
-                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-                    break
-                  else
-                    subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                    if subcondition == "Mint" || subcondition == "Very Good" then
+            begin
+              asin = product.dig(1, 'Identifiers', 'MarketplaceASIN', 'ASIN')
+              buf = product.dig(1, 'LowestOfferListings', 'LowestOfferListing')
+              lowestprice = 0
+              lowestship = 0
+              lowestpoint = 0
+              if buf.class == Array then
+                buf.each do |listing|
+                  if listing.class == Hash then
+                    fullfillment = listing.dig('Qualifiers', 'FulfillmentChannel')
+                    if condition == "New" then
                       lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                       lowestship = listing.dig('Price', 'Shipping','Amount')
                       lowestpoint = listing.dig('Price', 'Points','PointsNumber')
                       break
+                    else
+                      subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                      if subcondition == "Mint" || subcondition == "VeryGood" then
+                        lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                        lowestship = listing.dig('Price', 'Shipping','Amount')
+                        lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                        break
+                      end
                     end
                   end
                 end
-              end
-            elsif buf.class == Hash
-              listing = buf
-              fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
-              if condition == "New" then
-                lowestprice = listing.dig('Price', 'ListingPrice','Amount')
-                lowestship = listing.dig('Price', 'Shipping','Amount')
-                lowestpoint = listing.dig('Price', 'Points','PointsNumber')
-              else
-                subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
-                if subcondition == "Mint" || subcondition == "Very Good" then
+              elsif buf.class == Hash
+                listing = buf
+                fullfillment = listing.dig('Qualifiers','FulfillmentChannel')
+                if condition == "New" then
                   lowestprice = listing.dig('Price', 'ListingPrice','Amount')
                   lowestship = listing.dig('Price', 'Shipping','Amount')
                   lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                else
+                  subcondition = listing.dig('Qualifiers', 'ItemSubcondition')
+                  if subcondition == "Mint" || subcondition == "VeryGood" then
+                    lowestprice = listing.dig('Price', 'ListingPrice','Amount')
+                    lowestship = listing.dig('Price', 'Shipping','Amount')
+                    lowestpoint = listing.dig('Price', 'Points','PointsNumber')
+                  end
                 end
+              else
+                lowestprice = 0
+                lowestship = 0
+                lowestpoint = 0
               end
-            else
-              lowestprice = 0
-              lowestship = 0
-              lowestpoint = 0
+            rescue => e
             end
           end
 
