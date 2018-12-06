@@ -928,6 +928,9 @@ class Product < ApplicationRecord
     temp = temp.order("calc_updated_at ASC")
     targets = temp.pluck(:asin, :cost_price, :us_price, :us_shipping, :referral_fee, :variable_closing_fee, :listing_shipping, :referral_fee_rate, :sku)
 
+    deltag = products.where(sku: nil)
+    deltag.delete_all
+
     #===========
     url = "https://info.finance.yahoo.co.jp/fx/"
     begin
