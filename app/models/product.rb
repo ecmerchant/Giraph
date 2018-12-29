@@ -14,23 +14,14 @@ class Product < ApplicationRecord
     buffer = ShippingCost.where(user: user)
 
     t_a = buffer.where(name: "送料表A").order(weight: "ASC")
-    t_ems = buffer.where(name: "EMS送料表").order(weight: "ASC")
     table_a = Array.new
-    table_ems = Array.new
-
     t_a.each do |row|
       tb = [row.weight, row.cost]
       table_a.push(tb)
     end
 
-    t_ems.each do |row|
-      tb = [row.weight, row.cost]
-      table_ems.push(tb)
-    end
-
     shipping_table = Hash.new
     shipping_table["送料表A"] = table_a
-    shipping_table["EMS送料表"] = table_ems
 
     mp = "A1VC38T7YXB528"
     account = Account.find_by(user: user)
@@ -38,6 +29,8 @@ class Product < ApplicationRecord
     skey = account.secret_key
     awskey = account.aws_access_key_id
     package_weight = account.shipping_weight
+    content_coefficient = account.content_coefficient
+
 
     t = Time.now
     strTime = t.strftime("%Y年%m月%d日 %H時%M分")
@@ -129,18 +122,16 @@ class Product < ApplicationRecord
           end
 
           total_size = size_Height + size_Length + size_Width
-          max_size = [size_Height, size_Length, size_Width].max
+          shipping_type = "送料表A"
+          sum_weight = size_Weight + package_weight
+          calc_weight = content_coefficient.to_f * (size_Height * size_Length * size_Width) / 5000
 
-          if total_size > 80 || max_size > 50 then
-            shipping_type = "EMS送料表"
-          else
-            shipping_type = "送料表A"
-          end
+          total_weight = [sum_weight, calc_weight].max
 
           t_table = shipping_table[shipping_type]
           shipping_cost = 0
           t_table.each do |row|
-            if size_Weight + package_weight < row[0] then
+            if total_weight < row[0] then
               shipping_cost = row[1]
               break
             end

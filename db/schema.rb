@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181116150513) do
+ActiveRecord::Schema.define(version: 20181229092234) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -45,6 +45,7 @@ ActiveRecord::Schema.define(version: 20181116150513) do
     t.text     "feed_status"
     t.string   "csv_path"
     t.datetime "csv_created_at"
+    t.float    "content_coefficient"
   end
 
   create_table "feeds", force: :cascade do |t|
